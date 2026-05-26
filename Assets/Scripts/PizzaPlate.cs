@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using DG.Tweening;
 
 [RequireComponent(typeof(BoxCollider))]
 public class PizzaPlate : MonoBehaviour
@@ -89,6 +90,18 @@ public class PizzaPlate : MonoBehaviour
         if (slices.Contains(slice))
         {
             slices.Remove(slice);
+            // Tách rời miếng pizza đang bay ra khỏi đĩa hiện tại để đĩa không kéo theo nó nếu bị hủy
+            slice.transform.SetParent(null);
+            
+            // Nếu đĩa này nằm trên Grid (có GridCell) và vừa bị lấy đi miếng cuối cùng
+            if (slices.Count == 0 && currentCell != null)
+            {
+                currentCell.currentPlate = null;
+                // Thu nhỏ rồi biến mất
+                transform.DOScale(Vector3.zero, 0.4f).SetEase(Ease.InBack).OnComplete(() => {
+                    Destroy(gameObject);
+                });
+            }
         }
     }
 
@@ -130,12 +143,30 @@ public class PizzaPlate : MonoBehaviour
             if (allSame)
             {
                 Debug.Log($"[Logic Core] BÙM! Đĩa ở {currentCell.row}, {currentCell.column} đã đủ 6 lát màu {firstColor}. CỘNG 1 ĐIỂM!");
-                // Hủy (Nổ) các miếng pizza để làm trống đĩa
+                
+                // Cộng điểm trên UI
+                if (GameStateManager.Instance != null)
+                {
+                    GameStateManager.Instance.AddScore(1);
+                }
+
+                // Giải phóng ô lưới
+                if (currentCell != null)
+                {
+                    currentCell.currentPlate = null;
+                }
+
+                // Hủy các lát cắt (Tạm thời dùng Destroy, tuần sau sẽ dùng Object Pooling)
                 foreach (var slice in slices)
                 {
-                    Destroy(slice.gameObject); // Tạm thời Destroy, Tuần sau sẽ dùng Object Pooling
+                    Destroy(slice.gameObject);
                 }
                 slices.Clear();
+
+                // Tạo hiệu ứng thu nhỏ cho chính cái đĩa rồi biến mất
+                transform.DOScale(Vector3.zero, 0.4f).SetEase(Ease.InBack).OnComplete(() => {
+                    Destroy(gameObject);
+                });
             }
         }
     }

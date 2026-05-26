@@ -30,6 +30,16 @@ public class PizzaSlice : MonoBehaviour
     private IEnumerator FlyBezierRoutine(PizzaPlate targetPlate, Vector3 targetLocalPosition, Quaternion targetLocalRotation, System.Action onComplete)
     {
         isFlying = true;
+        
+        // Báo cho FSM biết có 1 animation vừa bắt đầu
+        if (GameStateManager.Instance != null)
+        {
+            if (GameStateManager.Instance.IsState<PlayingState>())
+            {
+                GameStateManager.Instance.ChangeState(GameStateManager.Instance.AnimatingState);
+            }
+            GameStateManager.Instance.AddActiveAnimation();
+        }
 
         Vector3 startPos = transform.position;
         // Điểm đích tính theo World Space dựa trên vị trí Local mong muốn trên đĩa mới
@@ -74,6 +84,12 @@ public class PizzaSlice : MonoBehaviour
 
         isFlying = false;
         
+        // Báo cho FSM biết animation này đã xong
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.RemoveActiveAnimation();
+        }
+
         // Gọi callback khi hoàn thành
         onComplete?.Invoke();
     }

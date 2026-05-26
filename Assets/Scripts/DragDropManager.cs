@@ -11,6 +11,12 @@ public class DragDropManager : MonoBehaviour
 
     void Update()
     {
+        // Chặn người chơi không cho kéo thả nếu FSM KHÔNG phải là PlayingState
+        if (GameStateManager.Instance != null && !GameStateManager.Instance.IsState<PlayingState>())
+        {
+            return;
+        }
+
         if (Input.GetMouseButtonDown(0))
         {
             HandleMouseDown();
