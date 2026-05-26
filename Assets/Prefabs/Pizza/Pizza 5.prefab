@@ -55,5 +55,29 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f5eb75794378f064da56fb9fb7e5c7a3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -8126033382136445324}
   m_SourcePrefab: {fileID: 100100000, guid: f5eb75794378f064da56fb9fb7e5c7a3, type: 3}
+--- !u!1 &7167304755877463748 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: f5eb75794378f064da56fb9fb7e5c7a3, type: 3}
+  m_PrefabInstance: {fileID: 8049630602968071061}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &-8126033382136445324
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7167304755877463748}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 09b47e16bffa7684693b3a10a3d5fda4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PizzaSlice
+  color: 0
+  flightDuration: 0.5
+  arcHeight: 2
+  currentPlate: {fileID: 0}
