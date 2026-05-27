@@ -17,11 +17,19 @@ public class PizzaPlate : MonoBehaviour
     [HideInInspector]
     public GridCell currentCell;
     
-    private Vector3 originalPosition;
+    [HideInInspector]
+    public HoldSlot currentHoldSlot;
+    
+    [HideInInspector]
+    public Vector3 originalPosition;
 
     void Start()
     {
-        originalPosition = transform.position;
+        // Chỉ gán lại originalPosition nếu nó chưa được LobbyManager/HoldSlot set từ trước (ví dụ kéo thả thủ công)
+        if (originalPosition == Vector3.zero)
+        {
+            originalPosition = transform.position;
+        }
         
         // Nạp các lát pizza có sẵn ban đầu (nếu người dùng kéo vào prefab làm child)
         PizzaSlice[] initialSlices = GetComponentsInChildren<PizzaSlice>();
@@ -174,5 +182,57 @@ public class PizzaPlate : MonoBehaviour
     public void ReturnToOriginalPosition()
     {
         transform.position = originalPosition;
+    }
+
+    /// <summary>
+    /// Thuật toán sinh ngẫu nhiên 1-4 lát cắt, chia theo cụm màu
+    /// </summary>
+    public void GenerateRandomSlices(PizzaSlice[] slicePrefabs)
+    {
+        slices.Clear();
+
+        // Số lượng lát muốn sinh: 1 đến 4 như yêu cầu
+        int totalSlicesToSpawn = Random.Range(1, 5); 
+        
+        // Chia làm 1 hoặc 2 cụm (Chunk) để các lát liền kề có màu giống nhau
+        int numChunks = (totalSlicesToSpawn > 1) ? Random.Range(1, 3) : 1;
+        
+        int spawnedCount = 0;
+
+        for (int c = 0; c < numChunks; c++)
+        {
+            // Cụm cuối cùng lấy nốt số lát còn lại, ngược lại thì random 1 phần
+            int slicesInChunk = (c == numChunks - 1) ? (totalSlicesToSpawn - spawnedCount) : Random.Range(1, totalSlicesToSpawn - spawnedCount);
+            
+            // Chọn ngẫu nhiên 1 màu (1 prefab)
+            int randomPrefabIndex = Random.Range(0, slicePrefabs.Length);
+            PizzaSlice prefab = slicePrefabs[randomPrefabIndex];
+
+            for (int i = 0; i < slicesInChunk; i++)
+            {
+                PizzaSlice newSlice = Instantiate(prefab, transform);
+                
+                // Set scale về 0 để chuẩn bị làm hiệu ứng DOTween Popup
+                newSlice.transform.localScale = Vector3.zero;
+                
+                float angle = slices.Count * (360f / maxSlices);
+                newSlice.transform.localPosition = new Vector3(0, sliceYOffset, 0);
+                newSlice.transform.localRotation = Quaternion.Euler(0, angle, 0);
+                
+                // DoTween Popup, delay một chút để sinh ra từ từ nối đuôi nhau
+                newSlice.transform.DOScale(Vector3.one, 0.4f).SetEase(Ease.OutBack).SetDelay(slices.Count * 0.1f);
+
+                slices.Add(newSlice);
+                newSlice.currentPlate = this;
+                spawnedCount++;
+            }
+        }
+    }
+
+    public void PlaySpawnAnimation()
+    {
+        // Hiệu ứng cái đĩa xuất hiện
+        transform.localScale = Vector3.zero;
+        transform.DOScale(Vector3.one, 0.5f).SetEase(Ease.OutBack);
     }
 }

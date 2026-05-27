@@ -77,7 +77,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 09b47e16bffa7684693b3a10a3d5fda4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PizzaSlice
-  color: 0
+  color: 4
   flightDuration: 0.5
   arcHeight: 2
   currentPlate: {fileID: 0}

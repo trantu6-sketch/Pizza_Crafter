@@ -136,13 +136,12 @@ public class GridManager : MonoBehaviour
 
     /// <summary>
     /// Thuật toán kiểm tra lân cận 4 hướng (Trên, Dưới, Trái, Phải)
-    /// Trả về danh sách các GridCell có chứa PizzaPlate cùng màu với chậu vừa đặt.
+    /// Trả về danh sách tất cả các GridCell có chứa đĩa Pizza.
     /// </summary>
-    public List<GridCell> GetMatchingNeighbors(int row, int col, PizzaColor targetColor)
+    public List<GridCell> GetAllNeighbors(int row, int col)
     {
-        List<GridCell> matchingNeighbors = new List<GridCell>();
+        List<GridCell> neighbors = new List<GridCell>();
 
-        // Mảng các hướng: [Dưới, Trên, Trái, Phải]
         int[] dRow = { -1, 1, 0, 0 };
         int[] dCol = { 0, 0, -1, 1 };
 
@@ -151,17 +150,16 @@ public class GridManager : MonoBehaviour
             int checkRow = row + dRow[i];
             int checkCol = col + dCol[i];
 
-            // Kiểm tra ranh giới
             if (checkRow >= 0 && checkRow < config.rows && checkCol >= 0 && checkCol < config.columns)
             {
                 GridCell neighborCell = gridMap[checkRow, checkCol];
-                if (!neighborCell.IsEmpty && neighborCell.currentPlate.GetTopColor() == targetColor)
+                if (!neighborCell.IsEmpty)
                 {
-                    matchingNeighbors.Add(neighborCell);
+                    neighbors.Add(neighborCell);
                 }
             }
         }
 
-        return matchingNeighbors;
+        return neighbors;
     }
 }

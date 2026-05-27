@@ -95,7 +95,19 @@ public class DragDropManager : MonoBehaviour
             // Nếu có ô trống, thực hiện bắt dính (Snapping)
             targetCell.SetPlate(draggingPlate);
             
-            // Chạy thuật toán kiểm tra 4 hướng và In ra Console
+            // Nếu đĩa này được kéo từ khay chờ (Lobby), giải phóng khay đó
+            if (draggingPlate.currentHoldSlot != null)
+            {
+                draggingPlate.currentHoldSlot.ClearSlot();
+                
+                // Báo cho Lobby kiểm tra xem 3 khay đã trống hết chưa để bơm đĩa mới
+                if (LobbyManager.Instance != null)
+                {
+                    LobbyManager.Instance.CheckAndRefill();
+                }
+            }
+
+            // Chạy thuật toán kiểm tra 4 hướng
             CheckNeighbors(targetCell);
         }
         else
@@ -112,69 +124,86 @@ public class DragDropManager : MonoBehaviour
         PizzaPlate placedPlate = placedCell.currentPlate;
         if (placedPlate == null || placedPlate.IsEmpty()) return;
 
-        PizzaColor targetColor = placedPlate.GetTopColor();
+        // 1. Lấy danh sách TẤT CẢ các đĩa lân cận (không phân biệt màu)
+        List<GridCell> neighbors = GridManager.Instance.GetAllNeighbors(placedCell.row, placedCell.column);
         
-        // 1. Lấy danh sách các đĩa lân cận có cùng màu (và đĩa vừa đặt)
-        List<GridCell> matchingCells = GridManager.Instance.GetMatchingNeighbors(placedCell.row, placedCell.column, targetColor);
-        
-        // Nếu không có đĩa lân cận nào trùng màu, kết thúc
-        if (matchingCells.Count == 0)
+        if (neighbors.Count == 0) return;
+
+        // 2. Tìm tất cả các màu đang tồn tại trên đĩa vừa đặt VÀ các đĩa lân cận
+        HashSet<PizzaColor> colorsToCheck = new HashSet<PizzaColor>();
+        foreach (var slice in placedPlate.slices)
+            colorsToCheck.Add(slice.color);
+        foreach (var neighbor in neighbors)
         {
-            Debug.Log("[Logic Core] Không có đĩa pizza nào liền kề trùng màu.");
-            return;
+            foreach (var slice in neighbor.currentPlate.slices)
+                colorsToCheck.Add(slice.color);
         }
 
-        // Thêm chính đĩa vừa đặt vào danh sách để so sánh
-        matchingCells.Add(placedCell);
-
-        // 2. Tìm đĩa có chứa nhiều lát pizza màu targetColor nhất
-        GridCell targetMergeCell = matchingCells[0];
-        int maxSlices = 0;
-
-        foreach (var cell in matchingCells)
+        // 3. Với mỗi màu, gom tất cả các lát cắt về cái đĩa đang chứa NHIỀU lát màu đó nhất
+        foreach (PizzaColor color in colorsToCheck)
         {
-            int countColor = 0;
-            // Đếm xem đĩa này có bao nhiêu lát cùng màu targetColor (tính từ trên xuống)
-            for (int i = cell.currentPlate.slices.Count - 1; i >= 0; i--)
+            List<GridCell> cellsWithColor = new List<GridCell>();
+            
+            if (CountSlicesOfColor(placedPlate, color) > 0)
+                cellsWithColor.Add(placedCell);
+                
+            foreach (var neighbor in neighbors)
             {
-                if (cell.currentPlate.slices[i].color == targetColor)
-                    countColor++;
-                else
-                    break;
+                if (CountSlicesOfColor(neighbor.currentPlate, color) > 0)
+                    cellsWithColor.Add(neighbor);
             }
 
-            if (countColor > maxSlices)
+            // Nếu chỉ có 1 đĩa có màu này thì không có gì để gom
+            if (cellsWithColor.Count <= 1) continue;
+
+            // Tìm đĩa đích (đĩa chứa nhiều màu này nhất)
+            GridCell targetMergeCell = cellsWithColor[0];
+            int maxSlices = CountSlicesOfColor(targetMergeCell.currentPlate, color);
+
+            for (int i = 1; i < cellsWithColor.Count; i++)
             {
-                maxSlices = countColor;
-                targetMergeCell = cell;
-            }
-        }
-
-        // 3. Thực hiện chuyển (bay) các lát cắt từ các đĩa kia sang đĩa nhiều nhất
-        PizzaPlate targetPlate = targetMergeCell.currentPlate;
-
-        foreach (var cell in matchingCells)
-        {
-            if (cell == targetMergeCell) continue; // Bỏ qua đĩa mục tiêu
-
-            PizzaPlate sourcePlate = cell.currentPlate;
-
-            // Rút dần các lát cắt từ trên cùng ra
-            for (int i = sourcePlate.slices.Count - 1; i >= 0; i--)
-            {
-                if (sourcePlate.slices[i].color == targetColor && !targetPlate.IsFull())
+                int count = CountSlicesOfColor(cellsWithColor[i].currentPlate, color);
+                if (count > maxSlices)
                 {
-                    PizzaSlice sliceToMove = sourcePlate.slices[i];
-                    // AddSlice sẽ lo logic rút khỏi đĩa cũ và bay sang đĩa mới
-                    targetPlate.AddSlice(sliceToMove);
-                }
-                else
-                {
-                    break; // Đã hết lát màu này, hoặc đĩa đích đã đầy
+                    maxSlices = count;
+                    targetMergeCell = cellsWithColor[i];
                 }
             }
-        }
 
-        Debug.Log($"[Logic Core] Đã gộp các lát Pizza về đĩa tại [{targetMergeCell.row}, {targetMergeCell.column}]");
+            // Tiến hành chuyển các lát cắt màu này từ các đĩa khác về đĩa đích
+            PizzaPlate targetPlate = targetMergeCell.currentPlate;
+            foreach (var cell in cellsWithColor)
+            {
+                if (cell == targetMergeCell) continue; // Bỏ qua đĩa đích
+
+                PizzaPlate sourcePlate = cell.currentPlate;
+                // Rút ngược từ trên xuống để tránh lỗi index khi Remove
+                for (int i = sourcePlate.slices.Count - 1; i >= 0; i--)
+                {
+                    if (sourcePlate.slices[i].color == color)
+                    {
+                        if (!targetPlate.IsFull())
+                        {
+                            PizzaSlice sliceToMove = sourcePlate.slices[i];
+                            targetPlate.AddSlice(sliceToMove);
+                        }
+                    }
+                }
+            }
+            
+            Debug.Log($"[Logic Core] Đã gộp các lát Pizza màu {color} về đĩa tại [{targetMergeCell.row}, {targetMergeCell.column}]");
+        }
+    }
+
+    private int CountSlicesOfColor(PizzaPlate plate, PizzaColor color)
+    {
+        if (plate == null) return 0;
+        
+        int count = 0;
+        foreach (var slice in plate.slices)
+        {
+            if (slice != null && slice.color == color) count++;
+        }
+        return count;
     }
 }
