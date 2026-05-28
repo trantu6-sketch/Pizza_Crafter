@@ -18,11 +18,20 @@ public class GameStateManager : MonoBehaviour
     [Header("UI References")]
     [Tooltip("Kéo Panel Menu (có chứa Button Bắt Đầu) vào đây")]
     public GameObject menuPanel;
+    
+    [Header("Game Over UI References")]
+    [Tooltip("Kéo Panel Game Over vào đây")]
+    public GameObject gameOverPanel;
+    [Tooltip("Kéo Text Điểm Số (TextMeshPro) trong bảng Game Over vào đây")]
+    public TMPro.TextMeshProUGUI gameOverScoreText;
+    [Tooltip("Kéo Text Best Score (TextMeshPro) trong bảng Game Over vào đây")]
+    public TMPro.TextMeshProUGUI gameOverBestScoreText;
 
-    [Tooltip("Kéo Text Điểm Số (TextMeshPro) vào đây")]
+    [Header("In-Game UI References")]
+    [Tooltip("Kéo Text Điểm Số (TextMeshPro) ở màn hình chơi vào đây")]
     public TMPro.TextMeshProUGUI scoreText;
 
-    private int currentScore = 0;
+    public int currentScore { get; private set; } = 0;
 
     void Awake()
     {
@@ -61,6 +70,26 @@ public class GameStateManager : MonoBehaviour
         if (IsState<MenuState>())
         {
             Debug.Log("[FSM] Người chơi đã click nút Start Game trên UI!");
+            ChangeState(PlayingState);
+        }
+    }
+
+    /// <summary>
+    /// Hàm này để Nút (Button) Restart gọi thông qua Event OnClick()
+    /// </summary>
+    public void RestartGameFromUI()
+    {
+        if (IsState<GameOverState>())
+        {
+            Debug.Log("[FSM] Người chơi đã click nút Restart Game trên UI!");
+            
+            // Xóa tất cả các đĩa trên lưới
+            GridManager.Instance.ClearAllPlates();
+            
+            // Reset điểm
+            currentScore = 0;
+            if (scoreText != null) scoreText.text = "0";
+
             ChangeState(PlayingState);
         }
     }

@@ -16,21 +16,22 @@ public class PizzaSlice : MonoBehaviour
     [HideInInspector]
     public PizzaPlate currentPlate;
 
-    private bool isFlying = false;
+    private Coroutine flightCoroutine;
 
     /// <summary>
     /// Hàm gọi để di chuyển lát Pizza bay sang một đĩa khác
     /// </summary>
     public void MoveToPlate(PizzaPlate targetPlate, Vector3 targetLocalPosition, Quaternion targetLocalRotation, System.Action onComplete = null)
     {
-        if (isFlying) return;
-        StartCoroutine(FlyBezierRoutine(targetPlate, targetLocalPosition, targetLocalRotation, onComplete));
+        if (flightCoroutine != null)
+        {
+            StopCoroutine(flightCoroutine);
+        }
+        flightCoroutine = StartCoroutine(FlyBezierRoutine(targetPlate, targetLocalPosition, targetLocalRotation, onComplete));
     }
 
     private IEnumerator FlyBezierRoutine(PizzaPlate targetPlate, Vector3 targetLocalPosition, Quaternion targetLocalRotation, System.Action onComplete)
     {
-        isFlying = true;
-        
         // Báo cho FSM biết có 1 animation vừa bắt đầu
         if (GameStateManager.Instance != null)
         {
@@ -82,7 +83,6 @@ public class PizzaSlice : MonoBehaviour
         transform.SetParent(targetPlate.transform);
         currentPlate = targetPlate;
 
-        isFlying = false;
         
         // Báo cho FSM biết animation này đã xong
         if (GameStateManager.Instance != null)

@@ -1,4 +1,5 @@
 using UnityEngine;
+using DG.Tweening;
 
 public class GridCell : MonoBehaviour
 {
@@ -10,6 +11,25 @@ public class GridCell : MonoBehaviour
 
     // Kiểm tra xem ô lưới này có trống hay không
     public bool IsEmpty => currentPlate == null;
+
+    private float originalY;
+
+    void Start()
+    {
+        originalY = transform.position.y;
+    }
+
+    public void HoverEffect()
+    {
+        // Nổi ô cờ lên 0.2f
+        transform.DOMoveY(originalY + 0.2f, 0.1f).SetEase(DG.Tweening.Ease.OutQuad);
+    }
+
+    public void ResetHoverEffect()
+    {
+        // Hạ ô cờ xuống vị trí cũ
+        transform.DOMoveY(originalY, 0.15f).SetEase(DG.Tweening.Ease.InQuad);
+    }
 
     /// <summary>
     /// Gán đĩa pizza vào ô lưới này

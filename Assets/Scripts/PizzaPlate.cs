@@ -11,8 +11,11 @@ public class PizzaPlate : MonoBehaviour
     [Tooltip("Độ cao để lát pizza nổi lên trên mặt đĩa thay vì lún xuống đáy")]
     public float sliceYOffset = 1.0f;
     
-    // Danh sách các lát Pizza đang có trên đĩa này
+    // Danh sách các lát Pizza đang có trên đĩa này (Dùng cho logic duyệt)
     public List<PizzaSlice> slices = new List<PizzaSlice>();
+    
+    // Mảng 6 ô cứng để theo dõi vị trí góc của từng lát (tránh đè nhau)
+    private PizzaSlice[] slotArray;
 
     [HideInInspector]
     public GridCell currentCell;
@@ -25,13 +28,15 @@ public class PizzaPlate : MonoBehaviour
 
     void Start()
     {
+        slotArray = new PizzaSlice[maxSlices];
+        
         // Chỉ gán lại originalPosition nếu nó chưa được LobbyManager/HoldSlot set từ trước (ví dụ kéo thả thủ công)
         if (originalPosition == Vector3.zero)
         {
             originalPosition = transform.position;
         }
         
-        // Nạp các lát pizza có sẵn ban đầu (nếu người dùng kéo vào prefab làm child)
+        // Nạp các lát pizza có sẵn ban đầu
         PizzaSlice[] initialSlices = GetComponentsInChildren<PizzaSlice>();
         foreach (var slice in initialSlices)
         {
@@ -41,13 +46,18 @@ public class PizzaPlate : MonoBehaviour
                 slices.Add(slice);
             }
         }
+        
+        // Đồng bộ mảng slot
+        for (int i = 0; i < slices.Count; i++)
+        {
+            slotArray[i] = slices[i];
+        }
+
         ArrangeSlicesInstantly();
     }
 
     /// <summary>
-    /// Lấy màu của lớp Pizza hiện tại (Màu của lát mới nhất, hoặc None nếu trống)
-    /// Lưu ý: Trò chơi Bloom Sort thường các cánh hoa cùng tầng sẽ cùng màu, 
-    /// ở đây ta lấy màu của lát trên cùng.
+    /// Lấy màu của lớp Pizza hiện tại
     /// </summary>
     public PizzaColor GetTopColor()
     {
@@ -66,11 +76,25 @@ public class PizzaPlate : MonoBehaviour
     }
 
     /// <summary>
-    /// Nhận 1 lát pizza mới, tính toán vị trí và góc rồi cho nó bay tới
+    /// Nhận 1 lát pizza mới, tìm ô trống và cho nó bay tới
     /// </summary>
-    public void AddSlice(PizzaSlice slice)
+    public bool AddSlice(PizzaSlice slice)
     {
-        if (IsFull()) return;
+        if (IsFull()) return false;
+
+        // Tìm vị trí ô trống đầu tiên trên đĩa (từ 0 đến 5)
+        int emptySlot = -1;
+        if (slotArray == null) slotArray = new PizzaSlice[maxSlices];
+        for (int i = 0; i < maxSlices; i++)
+        {
+            if (slotArray[i] == null)
+            {
+                emptySlot = i;
+                break;
+            }
+        }
+        
+        if (emptySlot == -1) return false; // Hết chỗ
 
         // Xóa khỏi đĩa cũ
         if (slice.currentPlate != null)
@@ -79,18 +103,19 @@ public class PizzaPlate : MonoBehaviour
         }
 
         slices.Add(slice);
+        slotArray[emptySlot] = slice;
         slice.currentPlate = this;
 
-        // Tính toán vị trí và góc xoay dựa trên index hiện tại (tạo thành vòng tròn 6 miếng)
-        int index = slices.Count - 1;
-        float angle = index * (360f / maxSlices);
+        // Tính toán góc dựa trên vị trí slot cố định (để lấp vào đúng lỗ hổng)
+        float angle = emptySlot * (360f / maxSlices);
         
-        // Đẩy lát cắt lên theo trục Y = 1 cứng như yêu cầu
         Vector3 targetLocalPos = new Vector3(0, 1f, 0); 
         Quaternion targetLocalRot = Quaternion.Euler(0, angle, 0);
 
         // Ra lệnh bay
         slice.MoveToPlate(this, targetLocalPos, targetLocalRot, OnSliceArrived);
+        
+        return true;
     }
 
     public void RemoveSlice(PizzaSlice slice)
@@ -98,6 +123,20 @@ public class PizzaPlate : MonoBehaviour
         if (slices.Contains(slice))
         {
             slices.Remove(slice);
+            
+            // Xóa khỏi slotArray để tạo lỗ hổng
+            if (slotArray != null)
+            {
+                for (int i = 0; i < maxSlices; i++)
+                {
+                    if (slotArray[i] == slice)
+                    {
+                        slotArray[i] = null;
+                        break;
+                    }
+                }
+            }
+
             // Tách rời miếng pizza đang bay ra khỏi đĩa hiện tại để đĩa không kéo theo nó nếu bị hủy
             slice.transform.SetParent(null);
             
@@ -158,21 +197,37 @@ public class PizzaPlate : MonoBehaviour
                     GameStateManager.Instance.AddScore(1);
                 }
 
-                // Giải phóng ô lưới
-                if (currentCell != null)
+                // Kích hoạt âm thanh nổ với hiệu ứng Pitch Shift
+                if (AudioManager.Instance != null)
                 {
-                    currentCell.currentPlate = null;
+                    AudioManager.Instance.PlayExplosionSound();
                 }
 
-                // Hủy các lát cắt (Tạm thời dùng Destroy, tuần sau sẽ dùng Object Pooling)
+                // Hủy các lát cắt ngay lập tức
                 foreach (var slice in slices)
                 {
                     Destroy(slice.gameObject);
                 }
                 slices.Clear();
 
-                // Tạo hiệu ứng thu nhỏ cho chính cái đĩa rồi biến mất
+                // Tạo hiệu ứng thu nhỏ cho chính cái đĩa, SAU ĐÓ mới nổ Particle và hiện Text
                 transform.DOScale(Vector3.zero, 0.4f).SetEase(Ease.InBack).OnComplete(() => {
+                    
+                    // Sinh hiệu ứng Particle nổ từ Pool
+                    if (ObjectPooler.Instance != null)
+                    {
+                        ObjectPooler.Instance.SpawnFromPool("ExplosionVFX", transform.position, Quaternion.identity);
+                        
+                        // Sinh Text cộng điểm bay lên (giữ nguyên góc xoay Prefab)
+                        Vector3 textPos = transform.position + new Vector3(0, 1.5f, 0);
+                        GameObject textObj = ObjectPooler.Instance.SpawnFromPool("FloatingText", textPos);
+                        if (textObj != null)
+                        {
+                            var tmpro = textObj.GetComponentInChildren<TMPro.TextMeshPro>();
+                            if (tmpro != null) tmpro.text = "+1";
+                        }
+                    }
+
                     Destroy(gameObject);
                 });
             }
@@ -215,14 +270,19 @@ public class PizzaPlate : MonoBehaviour
                 // Set scale về 0 để chuẩn bị làm hiệu ứng DOTween Popup
                 newSlice.transform.localScale = Vector3.zero;
                 
-                float angle = slices.Count * (360f / maxSlices);
+                // Tính toán góc dựa vào số lượng lát đã có
+                int currentCount = slices.Count;
+                float angle = currentCount * (360f / maxSlices);
                 newSlice.transform.localPosition = new Vector3(0, sliceYOffset, 0);
                 newSlice.transform.localRotation = Quaternion.Euler(0, angle, 0);
                 
-                // DoTween Popup, delay một chút để sinh ra từ từ nối đuôi nhau
-                newSlice.transform.DOScale(Vector3.one, 0.4f).SetEase(Ease.OutBack).SetDelay(slices.Count * 0.1f);
+                // DoTween Popup
+                newSlice.transform.DOScale(Vector3.one, 0.4f).SetEase(Ease.OutBack).SetDelay(currentCount * 0.1f);
 
                 slices.Add(newSlice);
+                if (slotArray == null) slotArray = new PizzaSlice[maxSlices];
+                if (currentCount < maxSlices) slotArray[currentCount] = newSlice;
+                
                 newSlice.currentPlate = this;
                 spawnedCount++;
             }
@@ -233,6 +293,6 @@ public class PizzaPlate : MonoBehaviour
     {
         // Hiệu ứng cái đĩa xuất hiện
         transform.localScale = Vector3.zero;
-        transform.DOScale(Vector3.one, 0.5f).SetEase(Ease.OutBack);
+        transform.DOScale(Vector3.one * 0.9f, 0.5f).SetEase(Ease.OutBack);
     }
 }

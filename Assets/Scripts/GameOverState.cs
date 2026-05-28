@@ -1,4 +1,5 @@
 using UnityEngine;
+using DG.Tweening;
 
 public class GameOverState : IGameState
 {
@@ -12,22 +13,57 @@ public class GameOverState : IGameState
     public void Enter()
     {
         Debug.Log("[FSM] Đang ở GameOverState: Trò chơi kết thúc!");
-        // TODO: Hiển thị UI Game Over (Bảng điểm, Nút chơi lại)
+        
+        // Cập nhật và Lưu Best Score
+        int currentScore = manager.currentScore;
+        int bestScore = PlayerPrefs.GetInt("BestScore", 0);
+        if (currentScore > bestScore)
+        {
+            bestScore = currentScore;
+            PlayerPrefs.SetInt("BestScore", bestScore);
+            PlayerPrefs.Save();
+        }
+
+        if (manager.gameOverPanel != null)
+        {
+            // Hiển thị text điểm số
+            if (manager.gameOverScoreText != null)
+            {
+                manager.gameOverScoreText.text = "Score: " + currentScore.ToString();
+            }
+            if (manager.gameOverBestScoreText != null)
+            {
+                manager.gameOverBestScoreText.text = "Best: " + bestScore.ToString();
+            }
+
+            manager.gameOverPanel.SetActive(true);
+            
+            // Nếu muốn dùng DOTween làm UI hiện lên mượt mà
+            manager.gameOverPanel.transform.localScale = Vector3.zero;
+            manager.gameOverPanel.transform.DOScale(Vector3.one, 0.5f).SetEase(DG.Tweening.Ease.OutBack);
+        }
     }
 
     public void Execute()
     {
-        // Nhấn phím R để giả lập chơi lại
+        // Có thể nhấn R để chơi lại nhanh
         if (Input.GetKeyDown(KeyCode.R))
         {
-            Debug.Log("[FSM] Người chơi chọn Chơi lại (Restart).");
-            // Thực tế sẽ phải Reset bàn chơi trước khi về PlayingState
-            manager.ChangeState(manager.PlayingState);
+            manager.RestartGameFromUI();
         }
     }
 
     public void Exit()
     {
         Debug.Log("[FSM] Thoát GameOverState. Ẩn UI.");
+        if (manager.gameOverPanel != null)
+        {
+            // Hiệu ứng thu nhỏ dần rồi mới tắt hẳn
+            manager.gameOverPanel.transform.DOScale(Vector3.zero, 0.3f)
+                .SetEase(DG.Tweening.Ease.InBack)
+                .OnComplete(() => {
+                    manager.gameOverPanel.SetActive(false);
+                });
+        }
     }
 }

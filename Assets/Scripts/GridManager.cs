@@ -162,4 +162,45 @@ public class GridManager : MonoBehaviour
 
         return neighbors;
     }
+
+    /// <summary>
+    /// Kiểm tra xem toàn bộ các ô lưới đã bị lấp đầy chưa (Game Over condition)
+    /// </summary>
+    public bool IsGridFull()
+    {
+        if (gridMap == null) return false;
+
+        for (int row = 0; row < config.rows; row++)
+        {
+            for (int col = 0; col < config.columns; col++)
+            {
+                if (gridMap[row, col].IsEmpty)
+                {
+                    return false; // Còn ít nhất 1 ô trống
+                }
+            }
+        }
+        return true; // Tất cả đã đầy
+    }
+
+    /// <summary>
+    /// Xóa toàn bộ đĩa trên lưới để chơi lại
+    /// </summary>
+    public void ClearAllPlates()
+    {
+        if (gridMap == null) return;
+
+        for (int row = 0; row < config.rows; row++)
+        {
+            for (int col = 0; col < config.columns; col++)
+            {
+                GridCell cell = gridMap[row, col];
+                if (!cell.IsEmpty && cell.currentPlate != null)
+                {
+                    Destroy(cell.currentPlate.gameObject);
+                    cell.currentPlate = null;
+                }
+            }
+        }
+    }
 }

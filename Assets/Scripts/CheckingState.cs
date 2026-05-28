@@ -32,10 +32,14 @@ public class CheckingState : IGameState
 
     private void CheckGameOver()
     {
-        // TODO: Viết hàm kiểm tra Game Over (duyệt toàn bộ GridCell và khay chứa).
-        // Nếu Game Over -> manager.ChangeState(manager.GameOverState);
-        // Nếu chưa -> manager.ChangeState(manager.PlayingState);
-
-        manager.ChangeState(manager.PlayingState);
+        if (GridManager.Instance != null && GridManager.Instance.IsGridFull())
+        {
+            Debug.Log("[FSM] Grid đã kín! Game Over!");
+            manager.ChangeState(manager.GameOverState);
+        }
+        else
+        {
+            manager.ChangeState(manager.PlayingState);
+        }
     }
 }

@@ -9,6 +9,14 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 4a9c1757bb4d30a43922d56f0645f240, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.76
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 4a9c1757bb4d30a43922d56f0645f240, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.76
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 4a9c1757bb4d30a43922d56f0645f240, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
@@ -105,5 +113,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e65bc65a0c5cf0e4aa52f83ce1c7d026, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PizzaPlate
-  topColor: 0
+  maxSlices: 6
+  sliceYOffset: 1
+  slices: []
   currentCell: {fileID: 0}
+  currentHoldSlot: {fileID: 0}
+  originalPosition: {x: 0, y: 0, z: 0}

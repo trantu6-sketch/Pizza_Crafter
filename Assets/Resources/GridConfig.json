@@ -1,6 +1,6 @@
 {
-    "rows": 5,
-    "columns": 6,
-    "cellSize": 3,
+    "rows": 6,
+    "columns": 4,
+    "cellSize": 2.4,
     "spacing": 0.7
 }
