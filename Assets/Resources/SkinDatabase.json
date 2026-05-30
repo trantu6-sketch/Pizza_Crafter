@@ -1,0 +1,39 @@
+{
+  "skins": [
+    {
+      "id": "SinglePlate2",
+      "name": "Đĩa Trắng Cơ Bản",
+      "price": 0,
+      "prefabPath": "",
+      "iconPath": "Icons/Plate2"
+    },
+    {
+      "id": "SinglePlate3",
+      "name": "Khay Nâu Cổ Điển",
+      "price": 250,
+      "prefabPath": "PlateSkins/SinglePlate3",
+      "iconPath": "Icons/Plate3"
+    },
+    {
+      "id": "SinglePlate4",
+      "name": "Đĩa Sắt Bạc",
+      "price": 200,
+      "prefabPath": "PlateSkins/SinglePlate4",
+      "iconPath": "Icons/Plate4"
+    },
+    {
+      "id": "SinglePlate5",
+      "name": "Đĩa Vàng Hoàng Gia",
+      "price": 300,
+      "prefabPath": "PlateSkins/SinglePlate5",
+      "iconPath": "Icons/Plate5"
+    },
+    {
+      "id": "SinglePlate6",
+      "name": "Đĩa Gốm Sứ Cánh Sen",
+      "price": 350,
+      "prefabPath": "PlateSkins/SinglePlate6",
+      "iconPath": "Icons/Plate6"
+    }
+  ]
+}

@@ -17,6 +17,15 @@ public class PizzaSlice : MonoBehaviour
     public PizzaPlate currentPlate;
 
     private Coroutine flightCoroutine;
+    
+    // Cố định tỷ lệ của miếng Pizza là 1 theo yêu cầu của bạn
+    private Vector3 originalPrefabScale = new Vector3(1f, 1f, 1f);
+
+    void Awake()
+    {
+        // Ghi đè LocalScale ngay lúc mới sinh ra để đảm bảo nó luôn là 0.8
+        transform.localScale = originalPrefabScale;
+    }
 
     /// <summary>
     /// Hàm gọi để di chuyển lát Pizza bay sang một đĩa khác
@@ -26,6 +35,14 @@ public class PizzaSlice : MonoBehaviour
         if (flightCoroutine != null)
         {
             StopCoroutine(flightCoroutine);
+            
+            // [FIX LỖI KẸT GAME KHI COMBO LIÊN HOÀN]
+            // Nếu một lát Pizza đang bay mà bị đổi hướng đột ngột (do chuỗi combo),
+            // ta phải giảm biến đếm animation của chuyến bay cũ, nếu không Game sẽ kẹt ở AnimatingState mãi mãi!
+            if (GameStateManager.Instance != null)
+            {
+                GameStateManager.Instance.RemoveActiveAnimation();
+            }
         }
         flightCoroutine = StartCoroutine(FlyBezierRoutine(targetPlate, targetLocalPosition, targetLocalRotation, onComplete));
     }
@@ -79,8 +96,13 @@ public class PizzaSlice : MonoBehaviour
         transform.position = targetPlate.transform.TransformPoint(targetLocalPosition);
         transform.rotation = targetPlate.transform.rotation * targetLocalRotation;
         
-        // Cập nhật quan hệ cha - con
+        // Cập nhật quan hệ cha - con (cho phép Unity bù trừ tọa độ tự do để tránh Teleport giữa màn hình)
         transform.SetParent(targetPlate.transform);
+        
+        // Sau khi đã vào đĩa mới an toàn, CƯỠNG CHẾ ép lại LocalScale về đúng 1.12 của Prefab!
+        // Tránh tình trạng to nhỏ thất thường khi bay giữa các đĩa có Scale khác nhau.
+        transform.localScale = originalPrefabScale;
+        
         currentPlate = targetPlate;
 
         

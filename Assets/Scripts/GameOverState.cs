@@ -14,14 +14,36 @@ public class GameOverState : IGameState
     {
         Debug.Log("[FSM] Đang ở GameOverState: Trò chơi kết thúc!");
         
-        // Cập nhật và Lưu Best Score
+        // Cập nhật và Lưu Best Score thông qua DataManager
         int currentScore = manager.currentScore;
-        int bestScore = PlayerPrefs.GetInt("BestScore", 0);
-        if (currentScore > bestScore)
+        int bestScore = 0;
+        
+        if (DataManager.Instance != null)
         {
-            bestScore = currentScore;
-            PlayerPrefs.SetInt("BestScore", bestScore);
-            PlayerPrefs.Save();
+            bestScore = DataManager.Instance.playerData.BestScore;
+            if (currentScore > bestScore)
+            {
+                bestScore = currentScore;
+                DataManager.Instance.playerData.BestScore = bestScore;
+                DataManager.Instance.SaveData();
+            }
+        }
+        else
+        {
+            // Dự phòng nếu chưa có DataManager
+            bestScore = PlayerPrefs.GetInt("BestScore", 0);
+            if (currentScore > bestScore)
+            {
+                bestScore = currentScore;
+                PlayerPrefs.SetInt("BestScore", bestScore);
+                PlayerPrefs.Save();
+            }
+        }
+
+        // Kích hoạt hình phạt giảm Level khi thua
+        if (LevelManager.Instance != null)
+        {
+            LevelManager.Instance.LevelDownOnGameOver();
         }
 
         if (manager.gameOverPanel != null)

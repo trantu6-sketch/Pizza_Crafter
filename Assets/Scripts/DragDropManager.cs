@@ -224,7 +224,7 @@ public class DragDropManager : MonoBehaviour
                     if (neighbor.currentPlate != null)
                     {
                         int c = CountSlicesOfColor(neighbor.currentPlate, color);
-                        if (c > 0 && c < neighbor.currentPlate.maxSlices)
+                        if (c > 0)
                         {
                             validNeighbors.Add(neighbor);
                         }
@@ -233,93 +233,102 @@ public class DragDropManager : MonoBehaviour
 
                 if (validNeighbors.Count == 0) continue;
 
-                // Gộp currentCell và validNeighbors để tìm ra đĩa Đích (Target)
+                // TÌM ĐĨA ĐÍCH (Target) theo nguyên tắc chống Ping-Pong và chống Kẹt
                 List<GridCell> group = new List<GridCell>();
                 group.Add(currentCell);
                 group.AddRange(validNeighbors);
 
-                int totalSlicesOfColor = 0;
-                foreach (var cell in group)
-                    totalSlicesOfColor += CountSlicesOfColor(cell.currentPlate, color);
-
+                // Sort giảm dần theo số lượng lát màu này. Ưu tiên currentCell nếu bằng nhau.
                 group.Sort((a, b) => 
                 {
-                    int countA = CountSlicesOfColor(a.currentPlate, color);
-                    int emptyA = a.currentPlate.maxSlices - a.currentPlate.slices.Count;
-                    int potentialA = countA + Mathf.Min(emptyA, totalSlicesOfColor - countA);
-
-                    int countB = CountSlicesOfColor(b.currentPlate, color);
-                    int emptyB = b.currentPlate.maxSlices - b.currentPlate.slices.Count;
-                    int potentialB = countB + Mathf.Min(emptyB, totalSlicesOfColor - countB);
-
-                    if (potentialA != potentialB)
-                        return potentialB.CompareTo(potentialA);
-                    return countB.CompareTo(countA);
+                    int cA = CountSlicesOfColor(a.currentPlate, color);
+                    int cB = CountSlicesOfColor(b.currentPlate, color);
+                    if (cA != cB) return cB.CompareTo(cA);
+                    if (a == currentCell) return -1;
+                    if (b == currentCell) return 1;
+                    return 0;
                 });
 
                 GridCell targetMergeCell = null;
-                foreach (var cell in group)
+                foreach (var potentialTarget in group)
                 {
-                    if (!cell.currentPlate.IsFull())
+                    // Nếu đĩa Đích bị Full 6 miếng, không thể nhét thêm được nữa! Bỏ qua.
+                    if (potentialTarget.currentPlate.IsFull()) continue;
+
+                    bool canMergeAnything = false;
+                    foreach (var source in group)
                     {
-                        targetMergeCell = cell;
-                        break;
+                        if (source == potentialTarget) continue;
+                        
+                        int sCount = CountSlicesOfColor(source.currentPlate, color);
+                        int tEmpty = potentialTarget.currentPlate.maxSlices - potentialTarget.currentPlate.slices.Count;
+                        int tCount = CountSlicesOfColor(potentialTarget.currentPlate, color);
+
+                        // ĐIỀU KIỆN MẤU CHỐT: Chỉ truyền Pizza nếu Đĩa đích đủ chỗ nhận TOÀN BỘ số Pizza của Đĩa nguồn,
+                        // HOẶC nếu việc nhận này giúp Đĩa đích Đủ 6 miếng (Nổ luôn).
+                        if (tEmpty >= sCount || (tCount + sCount) >= potentialTarget.currentPlate.maxSlices)
+                        {
+                            targetMergeCell = potentialTarget;
+                            canMergeAnything = true;
+                            break; // Tìm thấy 1 sự kết hợp hợp lệ là đủ để chốt Target
+                        }
                     }
+
+                    if (canMergeAnything) break;
                 }
 
                 if (targetMergeCell == null) continue;
 
-                PizzaPlate targetPlate = targetMergeCell.currentPlate;
+                bool moved = false;
 
-                // NGUYÊN TẮC QUAN TRỌNG: Chỉ chuyển pizza giữa các ô LIỀN KỀ
-                // Nếu Target LÀ currentCell -> Rút từ tất cả validNeighbors về currentCell
+                // TH1: Target chính là currentCell (Nó sẽ Hút toàn bộ Pizza từ xung quanh)
                 if (targetMergeCell == currentCell)
                 {
-                    bool moved = false;
                     foreach (var neighbor in validNeighbors)
                     {
                         PizzaPlate sourcePlate = neighbor.currentPlate;
-                        for (int i = sourcePlate.slices.Count - 1; i >= 0; i--)
+                        int sCount = CountSlicesOfColor(sourcePlate, color);
+                        int tEmpty = targetMergeCell.currentPlate.maxSlices - targetMergeCell.currentPlate.slices.Count;
+                        int tCount = CountSlicesOfColor(targetMergeCell.currentPlate, color);
+                        
+                        // Phải thỏa mãn điều kiện chống Ping-Pong
+                        if (tEmpty >= sCount || (tCount + sCount) >= targetMergeCell.currentPlate.maxSlices)
                         {
-                            if (sourcePlate.slices[i].color == color)
+                            for (int i = sourcePlate.slices.Count - 1; i >= 0; i--)
                             {
-                                if (!targetPlate.IsFull())
+                                if (sourcePlate.slices[i].color == color && !targetMergeCell.currentPlate.IsFull())
                                 {
-                                    bool success = targetPlate.AddSlice(sourcePlate.slices[i]);
-                                    if (success) moved = true;
+                                    if (targetMergeCell.currentPlate.AddSlice(sourcePlate.slices[i])) moved = true;
                                 }
                             }
                         }
                     }
-                    if (moved)
-                    {
-                        // Nếu currentCell nhận thêm pizza, nó có thể tiếp tục hút từ các lân cận mới của nó
-                        if (!activeQueue.Contains(currentCell)) activeQueue.Enqueue(currentCell);
-                    }
                 }
-                // Nếu Target LÀ một neighbor -> Chỉ có currentCell bơm cho neighbor đó!
+                // TH2: Target là 1 đĩa xung quanh (currentCell sẽ Bơm Pizza ra ngoài)
                 else
                 {
-                    bool moved = false;
                     PizzaPlate sourcePlate = currentPlate;
-                    for (int i = sourcePlate.slices.Count - 1; i >= 0; i--)
+                    int sCount = CountSlicesOfColor(sourcePlate, color);
+                    int tEmpty = targetMergeCell.currentPlate.maxSlices - targetMergeCell.currentPlate.slices.Count;
+                    int tCount = CountSlicesOfColor(targetMergeCell.currentPlate, color);
+                    
+                    // Phải thỏa mãn điều kiện chống Ping-Pong
+                    if (tEmpty >= sCount || (tCount + sCount) >= targetMergeCell.currentPlate.maxSlices)
                     {
-                        if (sourcePlate.slices[i].color == color)
+                        for (int i = sourcePlate.slices.Count - 1; i >= 0; i--)
                         {
-                            if (!targetPlate.IsFull())
+                            if (sourcePlate.slices[i].color == color && !targetMergeCell.currentPlate.IsFull())
                             {
-                                bool success = targetPlate.AddSlice(sourcePlate.slices[i]);
-                                if (success) moved = true;
+                                if (targetMergeCell.currentPlate.AddSlice(sourcePlate.slices[i])) moved = true;
                             }
                         }
                     }
-                    if (moved)
-                    {
-                        // Neighbor vừa nhận thêm pizza, nó sẽ trở thành tâm điểm (Active) để kích hoạt chuỗi phản ứng dây chuyền!
-                        if (!activeQueue.Contains(targetMergeCell)) activeQueue.Enqueue(targetMergeCell);
-                        // currentCell mất pizza, cũng cần kiểm tra lại
-                        if (!activeQueue.Contains(currentCell)) activeQueue.Enqueue(currentCell);
-                    }
+                }
+                
+                if (moved)
+                {
+                    if (!activeQueue.Contains(targetMergeCell)) activeQueue.Enqueue(targetMergeCell);
+                    if (!activeQueue.Contains(currentCell)) activeQueue.Enqueue(currentCell);
                 }
             }
         }

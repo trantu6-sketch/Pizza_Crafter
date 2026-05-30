@@ -178,6 +178,14 @@ public class GridManager : MonoBehaviour
                 {
                     return false; // Còn ít nhất 1 ô trống
                 }
+                
+                // [FIX LỖI GAME OVER NGẦM]
+                // NẾU ô không trống, nhưng đĩa trên ô đó CHUẨN BỊ NỔ (đã đủ 6 miếng cùng màu)
+                // Thì nó sẽ sớm biến mất sau 0.4s animation, nên Grid chưa thực sự Full!
+                if (gridMap[row, col].currentPlate != null && gridMap[row, col].currentPlate.IsReadyToBloom())
+                {
+                    return false; 
+                }
             }
         }
         return true; // Tất cả đã đầy
