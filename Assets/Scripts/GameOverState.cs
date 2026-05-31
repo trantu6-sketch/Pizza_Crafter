@@ -25,8 +25,15 @@ public class GameOverState : IGameState
             {
                 bestScore = currentScore;
                 DataManager.Instance.playerData.BestScore = bestScore;
-                DataManager.Instance.SaveData();
             }
+            
+            // XÓA DỮ LIỆU SAVE BÀN CỜ ĐỂ BẮT ĐẦU VÁN MỚI
+            DataManager.Instance.playerData.hasSavedGame = false;
+            DataManager.Instance.playerData.savedGrid.Clear();
+            DataManager.Instance.playerData.savedLobby.Clear();
+            DataManager.Instance.playerData.currentSessionScore = 0;
+            
+            DataManager.Instance.SaveData();
         }
         else
         {

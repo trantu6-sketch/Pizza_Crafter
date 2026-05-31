@@ -211,4 +211,72 @@ public class GridManager : MonoBehaviour
             }
         }
     }
+
+    // --- LƯU & TẢI TRẠNG THÁI BÀN CỜ ---
+    
+    public void SaveGridState()
+    {
+        if (DataManager.Instance == null) return;
+        
+        List<GridCellData> savedGrid = new List<GridCellData>();
+        
+        for (int row = 0; row < config.rows; row++)
+        {
+            for (int col = 0; col < config.columns; col++)
+            {
+                GridCell cell = gridMap[row, col];
+                if (!cell.IsEmpty && cell.currentPlate != null)
+                {
+                    GridCellData cellData = new GridCellData();
+                    cellData.row = row;
+                    cellData.col = col;
+                    
+                    PlateData pData = new PlateData();
+                    foreach (var slice in cell.currentPlate.slices)
+                    {
+                        pData.slices.Add(new SliceData(slice.color));
+                    }
+                    
+                    cellData.plate = pData;
+                    savedGrid.Add(cellData);
+                }
+            }
+        }
+        
+        DataManager.Instance.playerData.savedGrid = savedGrid;
+    }
+
+    public void LoadGridState()
+    {
+        if (DataManager.Instance == null || LobbyManager.Instance == null) return;
+        
+        // Trước khi load, xóa sạch bàn cờ
+        ClearAllPlates();
+
+        List<GridCellData> savedGrid = DataManager.Instance.playerData.savedGrid;
+        if (savedGrid == null || savedGrid.Count == 0) return;
+
+        foreach (var cellData in savedGrid)
+        {
+            if (cellData.row >= 0 && cellData.row < config.rows && cellData.col >= 0 && cellData.col < config.columns)
+            {
+                GridCell targetCell = gridMap[cellData.row, cellData.col];
+                
+                // Sinh ra đĩa
+                PizzaPlate newPlate = Instantiate(LobbyManager.Instance.platePrefab);
+                targetCell.SetPlate(newPlate);
+                
+                // Bỏ hiệu ứng spawn ban đầu vì đây là đĩa đang nằm trên bàn
+                newPlate.transform.localScale = Vector3.one * 0.8f;
+
+                // Sinh các lát cắt dựa theo data
+                if (cellData.plate != null && cellData.plate.slices != null)
+                {
+                    // Vì cơ chế AddSlice của chúng ta cần di chuyển từ ngoài vào, nhưng lúc Load Game thì cần chúng xuất hiện tức thì
+                    // Ta sẽ dùng hàm LoadSlicesFromSave thay thế cho GenerateRandomSlices
+                    newPlate.LoadSlicesFromSave(cellData.plate.slices, LobbyManager.Instance.slicePrefabs);
+                }
+            }
+        }
+    }
 }

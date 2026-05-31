@@ -18,6 +18,31 @@ public class QuestData
 }
 
 [System.Serializable]
+public class SliceData
+{
+    public PizzaColor color;
+
+    public SliceData(PizzaColor color)
+    {
+        this.color = color;
+    }
+}
+
+[System.Serializable]
+public class PlateData
+{
+    public List<SliceData> slices = new List<SliceData>();
+}
+
+[System.Serializable]
+public class GridCellData
+{
+    public int row;
+    public int col;
+    public PlateData plate;
+}
+
+[System.Serializable]
 public class PlayerData
 {
     // Tài nguyên người chơi
@@ -29,13 +54,25 @@ public class PlayerData
     // Hệ thống Nhiệm vụ
     public List<QuestData> QuestsProgress = new List<QuestData>();
 
-    // Các thông số hiện tại (di dời từ PlayerPrefs sang)
+    // Các thông số hiện tại
     public int Level = 1;
     public int Exp = 0;
     public int BestScore = 0;
     
+    // --- TÚI ĐỒ BOOSTER ---
+    public int hammerCount = 0;
+    public int swapCount = 0;
+    public int trashCount = 0;
+    public int rerollCount = 0;
+    
     // Lưu trữ Skin đang được trang bị
     public string EquippedPlateSkin = "Plate_Default";
+
+    // --- GAME STATE (BOARD SAVE/LOAD) ---
+    public int currentSessionScore = 0;
+    public List<GridCellData> savedGrid = new List<GridCellData>();
+    public List<PlateData> savedLobby = new List<PlateData>();
+    public bool hasSavedGame = false;
 
     public PlayerData()
     {

@@ -481,4 +481,51 @@ public class PizzaPlate : MonoBehaviour
         transform.localScale = Vector3.zero;
         transform.DOScale(Vector3.one * 0.9f, 0.5f).SetEase(Ease.OutBack);
     }
+
+    /// <summary>
+    /// Dùng riêng cho lúc Load Game: Tạo ngay các lát Pizza theo Data (không dùng DOtween)
+    /// </summary>
+    public void LoadSlicesFromSave(List<SliceData> savedSlices, PizzaSlice[] slicePrefabs)
+    {
+        slices.Clear();
+        if (slotArray == null) slotArray = new PizzaSlice[maxSlices];
+        else
+        {
+            for (int i = 0; i < maxSlices; i++) slotArray[i] = null;
+        }
+
+        for (int i = 0; i < savedSlices.Count; i++)
+        {
+            if (i >= maxSlices) break;
+
+            // Tìm prefab tương ứng với màu này
+            PizzaSlice prefabToSpawn = slicePrefabs[0]; // Mặc định cái đầu tiên
+            foreach (var prefab in slicePrefabs)
+            {
+                if (prefab.color == savedSlices[i].color)
+                {
+                    prefabToSpawn = prefab;
+                    break;
+                }
+            }
+
+            // Sinh lát cắt, truyền 'false' để giữ nguyên LocalScale gốc
+            PizzaSlice newSlice = Instantiate(prefabToSpawn, transform, false);
+            
+            // Xóa hiệu ứng Popup đang có (nếu Start/Awake của Slice có gọi DOTween)
+            newSlice.transform.DOKill();
+            
+            // Đặt Scale về mặc định của Prefab
+            newSlice.transform.localScale = new Vector3(1f, 1f, 1f); // Script PizzaSlice có gán originalPrefabScale = (1,1,1)
+
+            // Đặt vào đúng vị trí slot
+            float angle = i * (360f / maxSlices);
+            newSlice.transform.localPosition = new Vector3(0, sliceYOffset, 0);
+            newSlice.transform.localRotation = Quaternion.Euler(0, angle, 0);
+
+            newSlice.currentPlate = this;
+            slices.Add(newSlice);
+            slotArray[i] = newSlice;
+        }
+    }
 }

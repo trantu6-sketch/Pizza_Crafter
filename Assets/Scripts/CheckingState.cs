@@ -40,6 +40,9 @@ public class CheckingState : IGameState
         else
         {
             manager.ChangeState(manager.PlayingState);
+            
+            // Kích hoạt Auto-save vì lượt đi (bao gồm cả combo nổ) đã kết thúc an toàn
+            manager.TriggerAutoSave();
         }
     }
 }

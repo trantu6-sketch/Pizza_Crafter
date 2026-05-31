@@ -20,6 +20,20 @@ public class SkinDatabase
     public List<SkinData> skins;
 }
 
+public class BoosterData
+{
+    public string name;
+    public BoosterType type;
+    public int price;
+    public string iconPath;
+}
+
+public enum ShopTab
+{
+    Skins,
+    Boosters
+}
+
 public class ShopManager : MonoBehaviour
 {
     public static ShopManager Instance { get; private set; }
@@ -48,14 +62,26 @@ public class ShopManager : MonoBehaviour
     public Color dotActiveColor = Color.yellow;
     public Color dotInactiveColor = Color.gray;
 
-    private SkinDatabase database;
+    private SkinDatabase skinDatabase;
+    private List<BoosterData> boosterDatabase;
+    
     private int currentIndex = 0;
     private List<Image> paginationDots = new List<Image>();
+    
+    private ShopTab currentTab = ShopTab.Skins;
 
     void Awake()
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
+        
+        // Khởi tạo Database cho Booster
+        boosterDatabase = new List<BoosterData>() {
+            new BoosterData { name = "Làm Mới (Re-roll)", type = BoosterType.Reroll, price = BoosterManager.Instance != null ? BoosterManager.Instance.rerollCost : 20, iconPath = "Boosters/Icon_Reroll" },
+            new BoosterData { name = "Thùng Rác (Trash)", type = BoosterType.Trash, price = BoosterManager.Instance != null ? BoosterManager.Instance.trashCost : 30, iconPath = "Boosters/Icon_Trash" },
+            new BoosterData { name = "Đổi Chỗ (Swap)", type = BoosterType.Swap, price = BoosterManager.Instance != null ? BoosterManager.Instance.swapCost : 50, iconPath = "Boosters/Icon_Swap" },
+            new BoosterData { name = "Búa Tạ (Hammer)", type = BoosterType.Hammer, price = BoosterManager.Instance != null ? BoosterManager.Instance.hammerCost : 100, iconPath = "Boosters/Icon_Hammer" }
+        };
     }
 
     void Start()
@@ -75,9 +101,8 @@ public class ShopManager : MonoBehaviour
         TextAsset jsonText = Resources.Load<TextAsset>(databaseFileName);
         if (jsonText != null)
         {
-            database = JsonUtility.FromJson<SkinDatabase>(jsonText.text);
-            Debug.Log($"[ShopManager] Nạp thành công {database.skins.Count} skins từ JSON.");
-            GenerateDots();
+            skinDatabase = JsonUtility.FromJson<SkinDatabase>(jsonText.text);
+            Debug.Log($"[ShopManager] Nạp thành công {skinDatabase.skins.Count} skins từ JSON.");
         }
         else
         {
@@ -96,8 +121,8 @@ public class ShopManager : MonoBehaviour
             shopPanel.transform.DOScale(Vector3.one, 0.4f).SetEase(Ease.OutBack);
         }
         
-        currentIndex = 0; // Luôn hiển thị món đầu tiên khi mở shop
-        UpdateDisplay();
+        // Luôn hiển thị tab Skins khi mở shop
+        OpenSkinTab();
         UpdateGoldUI();
     }
 
@@ -122,42 +147,108 @@ public class ShopManager : MonoBehaviour
         }
     }
 
+    // ================== LOGIC TAB ==================
+
+    public void OpenSkinTab()
+    {
+        currentTab = ShopTab.Skins;
+        currentIndex = 0;
+        GenerateDots();
+        UpdateDisplay();
+    }
+
+    public void OpenBoosterTab()
+    {
+        currentTab = ShopTab.Boosters;
+        currentIndex = 0;
+        
+        // Cập nhật giá lỡ có thay đổi trong Inspector
+        if (boosterDatabase != null && BoosterManager.Instance != null)
+        {
+            boosterDatabase[0].price = BoosterManager.Instance.rerollCost;
+            boosterDatabase[1].price = BoosterManager.Instance.trashCost;
+            boosterDatabase[2].price = BoosterManager.Instance.swapCost;
+            boosterDatabase[3].price = BoosterManager.Instance.hammerCost;
+        }
+        
+        GenerateDots();
+        UpdateDisplay();
+    }
+
     // ================== LOGIC CAROUSEL ==================
+
+    private int GetCurrentListCount()
+    {
+        if (currentTab == ShopTab.Skins) return skinDatabase != null ? skinDatabase.skins.Count : 0;
+        else return boosterDatabase != null ? boosterDatabase.Count : 0;
+    }
 
     public void NextItem()
     {
-        if (database == null || database.skins.Count == 0) return;
+        int count = GetCurrentListCount();
+        if (count == 0) return;
+        
         currentIndex++;
-        if (currentIndex >= database.skins.Count) currentIndex = 0; // Quay vòng lại đầu
+        if (currentIndex >= count) currentIndex = 0; // Quay vòng lại đầu
         UpdateDisplay();
     }
 
     public void PreviousItem()
     {
-        if (database == null || database.skins.Count == 0) return;
+        int count = GetCurrentListCount();
+        if (count == 0) return;
+        
         currentIndex--;
-        if (currentIndex < 0) currentIndex = database.skins.Count - 1; // Quay vòng về cuối
+        if (currentIndex < 0) currentIndex = count - 1; // Quay vòng về cuối
         UpdateDisplay();
     }
 
     private void UpdateDisplay()
     {
-        if (database == null || database.skins.Count == 0) return;
+        if (GetCurrentListCount() == 0) return;
 
-        SkinData currentSkin = database.skins[currentIndex];
+        string name = "";
+        string iconPath = "";
+        int price = 0;
+        bool isOwned = false;
+        bool isEquipped = false;
 
-        // Cập nhật Tên và Giá
-        if (itemNameText != null) itemNameText.text = currentSkin.name;
+        if (currentTab == ShopTab.Skins)
+        {
+            SkinData currentSkin = skinDatabase.skins[currentIndex];
+            name = currentSkin.name;
+            iconPath = currentSkin.iconPath;
+            price = currentSkin.price;
+            
+            if (DataManager.Instance != null)
+            {
+                isOwned = DataManager.Instance.playerData.PurchasedSkins.Contains(currentSkin.id) || currentSkin.price == 0;
+                isEquipped = DataManager.Instance.playerData.EquippedPlateSkin == currentSkin.id;
+            }
+        }
+        else // Boosters
+        {
+            BoosterData currentBooster = boosterDatabase[currentIndex];
+            name = currentBooster.name;
+            iconPath = currentBooster.iconPath;
+            price = currentBooster.price;
+            // Booster thì không có khái niệm Trang bị, mua là xài (tích trữ vào kho)
+            isOwned = false; 
+            isEquipped = false;
+        }
+
+        // Cập nhật Tên
+        if (itemNameText != null) itemNameText.text = name;
         
         // Tải Icon 2D
         if (itemIcon != null)
         {
-            // [DOTween] Hiệu ứng giật nhẹ (Punch Scale) khi chuyển ảnh đĩa
+            // [DOTween] Hiệu ứng giật nhẹ (Punch Scale) khi chuyển ảnh
             itemIcon.transform.DOPunchScale(new Vector3(0.1f, 0.1f, 0f), 0.2f, 5, 1);
 
-            if (!string.IsNullOrEmpty(currentSkin.iconPath))
+            if (!string.IsNullOrEmpty(iconPath))
             {
-                Sprite loadedSprite = Resources.Load<Sprite>(currentSkin.iconPath);
+                Sprite loadedSprite = Resources.Load<Sprite>(iconPath);
                 if (loadedSprite != null)
                 {
                     itemIcon.sprite = loadedSprite;
@@ -177,28 +268,37 @@ public class ShopManager : MonoBehaviour
         // Cập nhật trạng thái Nút Mua/Trang Bị
         if (DataManager.Instance != null && buyButtonText != null && buyButton != null)
         {
-            bool isOwned = DataManager.Instance.playerData.PurchasedSkins.Contains(currentSkin.id) || currentSkin.price == 0;
-            bool isEquipped = DataManager.Instance.playerData.EquippedPlateSkin == currentSkin.id;
+            if (currentTab == ShopTab.Skins)
+            {
+                if (itemPriceText != null)
+                {
+                    itemPriceText.text = isOwned ? "SỞ HỮU" : price.ToString();
+                }
 
-            if (itemPriceText != null)
-            {
-                itemPriceText.text = isOwned ? "SỞ HỮU" : currentSkin.price.ToString();
+                if (isEquipped)
+                {
+                    buyButtonText.text = "ĐANG DÙNG";
+                    buyButton.interactable = false;
+                }
+                else if (isOwned)
+                {
+                    buyButtonText.text = "TRANG BỊ";
+                    buyButton.interactable = true;
+                }
+                else
+                {
+                    buyButtonText.text = "MUA";
+                    buyButton.interactable = DataManager.Instance.playerData.Gold >= price;
+                }
             }
-
-            if (isEquipped)
+            else // Boosters
             {
-                buyButtonText.text = "ĐANG DÙNG";
-                buyButton.interactable = false; // Đang dùng thì mờ đi
-            }
-            else if (isOwned)
-            {
-                buyButtonText.text = "TRANG BỊ";
-                buyButton.interactable = true;
-            }
-            else
-            {
+                if (itemPriceText != null)
+                {
+                    itemPriceText.text = price.ToString();
+                }
                 buyButtonText.text = "MUA";
-                buyButton.interactable = DataManager.Instance.playerData.Gold >= currentSkin.price;
+                buyButton.interactable = DataManager.Instance.playerData.Gold >= price;
             }
         }
 
@@ -209,7 +309,9 @@ public class ShopManager : MonoBehaviour
 
     private void GenerateDots()
     {
-        if (dotPrefab == null || dotsContainer == null || database == null) return;
+        if (dotPrefab == null || dotsContainer == null) return;
+        
+        int count = GetCurrentListCount();
 
         // Dọn dẹp chấm cũ
         foreach (Transform child in dotsContainer)
@@ -219,7 +321,7 @@ public class ShopManager : MonoBehaviour
         paginationDots.Clear();
 
         // Sinh chấm mới
-        for (int i = 0; i < database.skins.Count; i++)
+        for (int i = 0; i < count; i++)
         {
             GameObject dot = Instantiate(dotPrefab, dotsContainer);
             Image dotImage = dot.GetComponent<Image>();
@@ -249,33 +351,57 @@ public class ShopManager : MonoBehaviour
 
     private void OnBuyOrEquipClicked()
     {
-        if (DataManager.Instance == null || database == null) return;
+        if (DataManager.Instance == null) return;
 
-        SkinData currentSkin = database.skins[currentIndex];
-        bool isOwned = DataManager.Instance.playerData.PurchasedSkins.Contains(currentSkin.id) || currentSkin.price == 0;
+        if (currentTab == ShopTab.Skins)
+        {
+            SkinData currentSkin = skinDatabase.skins[currentIndex];
+            bool isOwned = DataManager.Instance.playerData.PurchasedSkins.Contains(currentSkin.id) || currentSkin.price == 0;
 
-        if (isOwned)
-        {
-            // Trang bị (Equip)
-            DataManager.Instance.playerData.EquippedPlateSkin = currentSkin.id;
-            DataManager.Instance.SaveData();
-            Debug.Log($"[ShopManager] Đã trang bị skin: {currentSkin.name}");
-            UpdateAllPlatesInScene();
-        }
-        else
-        {
-            // Cố gắng mua
-            bool success = DataManager.Instance.BuySkin(currentSkin.id, currentSkin.price);
-            if (success)
+            if (isOwned)
             {
-                // Mua thành công, tự động trang bị
                 DataManager.Instance.playerData.EquippedPlateSkin = currentSkin.id;
                 DataManager.Instance.SaveData();
+                Debug.Log($"[ShopManager] Đã trang bị skin: {currentSkin.name}");
                 UpdateAllPlatesInScene();
+            }
+            else
+            {
+                bool success = DataManager.Instance.BuySkin(currentSkin.id, currentSkin.price);
+                if (success)
+                {
+                    DataManager.Instance.playerData.EquippedPlateSkin = currentSkin.id;
+                    DataManager.Instance.SaveData();
+                    UpdateAllPlatesInScene();
+                }
+            }
+        }
+        else // Boosters
+        {
+            BoosterData currentBooster = boosterDatabase[currentIndex];
+            if (DataManager.Instance.playerData.Gold >= currentBooster.price)
+            {
+                DataManager.Instance.AddGold(-currentBooster.price);
+                
+                switch (currentBooster.type)
+                {
+                    case BoosterType.Hammer: DataManager.Instance.playerData.hammerCount++; break;
+                    case BoosterType.Swap: DataManager.Instance.playerData.swapCount++; break;
+                    case BoosterType.Trash: DataManager.Instance.playerData.trashCount++; break;
+                    case BoosterType.Reroll: DataManager.Instance.playerData.rerollCount++; break;
+                }
+                
+                DataManager.Instance.SaveData();
+                Debug.Log($"[ShopManager] Đã mua thành công: {currentBooster.name}");
+                
+                // Gợi ý: Có thể gọi 1 Particle System "Ting!" bay lên từ nút mua ở đây
+            }
+            else
+            {
+                Debug.Log("[ShopManager] Không đủ Vàng để mua Booster!");
             }
         }
 
-        // Cập nhật lại UI
         UpdateGoldUI();
         UpdateDisplay();
     }
@@ -291,7 +417,7 @@ public class ShopManager : MonoBehaviour
 
     public SkinData GetSkinData(string skinId)
     {
-        if (database == null) return null;
-        return database.skins.Find(s => s.id == skinId);
+        if (skinDatabase == null) return null;
+        return skinDatabase.skins.Find(s => s.id == skinId);
     }
 }

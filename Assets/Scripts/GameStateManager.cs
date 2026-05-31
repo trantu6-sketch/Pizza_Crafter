@@ -14,6 +14,7 @@ public class GameStateManager : MonoBehaviour
     public AnimatingState AnimatingState { get; private set; }
     public CheckingState CheckingState { get; private set; }
     public GameOverState GameOverState { get; private set; }
+    public BoosterState BoosterState { get; private set; }
 
     [Header("UI References")]
     [Tooltip("Kéo Panel Menu (có chứa Button Bắt Đầu) vào đây")]
@@ -46,6 +47,7 @@ public class GameStateManager : MonoBehaviour
         AnimatingState = new AnimatingState(this);
         CheckingState = new CheckingState(this);
         GameOverState = new GameOverState(this);
+        BoosterState = new BoosterState(this);
     }
 
     public void AddScore(int amount)
@@ -98,6 +100,13 @@ public class GameStateManager : MonoBehaviour
     {
         // Khởi đầu game ở trạng thái Menu (hoặc có thể vào thẳng Playing nếu muốn test)
         ChangeState(MenuState);
+
+        // Load điểm cũ nếu có Save
+        if (DataManager.Instance != null && DataManager.Instance.playerData.hasSavedGame)
+        {
+            currentScore = DataManager.Instance.playerData.currentSessionScore;
+            if (scoreText != null) scoreText.text = currentScore.ToString();
+        }
     }
 
     void Update()
@@ -144,6 +153,29 @@ public class GameStateManager : MonoBehaviour
         {
             activeAnimations = 0;
             ChangeState(CheckingState);
+        }
+    }
+
+    // --- AUTO SAVE ---
+    public void TriggerAutoSave()
+    {
+        StartCoroutine(AutoSaveRoutine());
+    }
+
+    private System.Collections.IEnumerator AutoSaveRoutine()
+    {
+        // Đợi 1 chút xíu (hết frame) để đảm bảo mọi logic CheckBloom, xóa đĩa cũ... đã được hoàn tất
+        yield return new WaitForEndOfFrame();
+        
+        if (DataManager.Instance != null && LobbyManager.Instance != null && GridManager.Instance != null)
+        {
+            DataManager.Instance.playerData.hasSavedGame = true;
+            DataManager.Instance.playerData.currentSessionScore = currentScore;
+            GridManager.Instance.SaveGridState();
+            LobbyManager.Instance.SaveLobbyState();
+            DataManager.Instance.SaveData();
+            
+            Debug.Log("[FSM] Đã Auto-save toàn bộ trạng thái bàn cờ!");
         }
     }
 }
