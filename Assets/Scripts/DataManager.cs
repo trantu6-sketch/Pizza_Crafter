@@ -48,6 +48,44 @@ public class DataManager : MonoBehaviour
             playerData = new PlayerData();
             SaveData();
         }
+        
+        CheckLoginStreak();
+    }
+
+    private void CheckLoginStreak()
+    {
+        string today = System.DateTime.Now.ToString("yyyy-MM-dd");
+        
+        if (string.IsNullOrEmpty(playerData.lastLoginDate))
+        {
+            // Lần đăng nhập đầu tiên
+            playerData.lastLoginDate = today;
+            playerData.consecutiveLoginDays = 1;
+            SetQuestProgress("Quest_Login_7_Days", 1);
+            SaveData();
+        }
+        else if (playerData.lastLoginDate != today)
+        {
+            System.DateTime lastDate;
+            if (System.DateTime.TryParse(playerData.lastLoginDate, out lastDate))
+            {
+                System.TimeSpan diff = System.DateTime.Now.Date - lastDate.Date;
+                if (diff.Days == 1)
+                {
+                    // Ngày tiếp theo
+                    playerData.consecutiveLoginDays++;
+                    UpdateQuestProgress("Quest_Login_7_Days", 1);
+                }
+                else if (diff.Days > 1)
+                {
+                    // Đã bỏ lỡ 1 ngày, reset chuỗi
+                    playerData.consecutiveLoginDays = 1;
+                    SetQuestProgress("Quest_Login_7_Days", 1); // Reset lại nhiệm vụ về 1
+                }
+            }
+            playerData.lastLoginDate = today;
+            SaveData();
+        }
     }
 
     // ================= CÁC HÀM TIỆN ÍCH =================
@@ -55,6 +93,7 @@ public class DataManager : MonoBehaviour
     public void AddGold(int amount)
     {
         playerData.Gold += amount;
+        UpdateQuestProgress("Quest_Collect_2000_Gold", amount);
         SaveData();
     }
 
@@ -70,6 +109,7 @@ public class DataManager : MonoBehaviour
         {
             playerData.Gold -= price;
             playerData.PurchasedSkins.Add(skinId);
+            UpdateQuestProgress("Quest_Unlock_5_Skins", 1);
             SaveData();
             Debug.Log($"[DataManager] Mua thành công {skinId}. Còn lại {playerData.Gold} Vàng.");
             return true;
@@ -87,6 +127,22 @@ public class DataManager : MonoBehaviour
         if (quest != null && !quest.isCompleted)
         {
             quest.currentProgress += amountAdded;
+            if (quest.currentProgress >= quest.targetProgress)
+            {
+                quest.currentProgress = quest.targetProgress;
+                quest.isCompleted = true;
+                Debug.Log($"[DataManager] HOÀN THÀNH NHIỆM VỤ: {questId}!");
+            }
+            SaveData();
+        }
+    }
+
+    public void SetQuestProgress(string questId, int absoluteProgress)
+    {
+        QuestData quest = playerData.QuestsProgress.Find(q => q.questId == questId);
+        if (quest != null && !quest.isCompleted)
+        {
+            quest.currentProgress = absoluteProgress;
             if (quest.currentProgress >= quest.targetProgress)
             {
                 quest.currentProgress = quest.targetProgress;

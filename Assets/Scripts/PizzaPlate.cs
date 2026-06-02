@@ -288,8 +288,7 @@ public class PizzaPlate : MonoBehaviour
                 if (DataManager.Instance != null)
                 {
                     DataManager.Instance.AddGold(finalScore);
-                    // Ví dụ: Cập nhật nhiệm vụ kiếm 100 vàng
-                    DataManager.Instance.UpdateQuestProgress("Quest_Earn_100_Gold", finalScore);
+                    DataManager.Instance.UpdateQuestProgress("Quest_Match_50_Plates", 1);
                 }
 
                 // Kích hoạt âm thanh nổ với hiệu ứng Pitch Shift

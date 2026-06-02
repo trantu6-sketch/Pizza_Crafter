@@ -7,6 +7,7 @@ public class QuestData
     public int currentProgress;
     public int targetProgress;
     public bool isCompleted;
+    public bool isClaimed;
 
     public QuestData(string id, int target)
     {
@@ -14,6 +15,7 @@ public class QuestData
         this.currentProgress = 0;
         this.targetProgress = target;
         this.isCompleted = false;
+        this.isClaimed = false;
     }
 }
 
@@ -58,6 +60,12 @@ public class PlayerData
     public int Level = 1;
     public int Exp = 0;
     public int BestScore = 0;
+    
+    // --- DAILY REWARD SYSTEM ---
+    public string lastLoginDate = ""; // (Cũ) Local time
+    public int consecutiveLoginDays = 0;
+    public string lastDailyRewardClaimDateUTC = ""; // Lưu ngày điểm danh cuối cùng theo giờ UTC
+    public int currentDailyRewardDay = 0; // Số ngày đã điểm danh liên tiếp (0 đến 6)
     
     // --- TÚI ĐỒ BOOSTER ---
     public int hammerCount = 0;

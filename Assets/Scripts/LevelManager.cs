@@ -85,6 +85,11 @@ public class LevelManager : MonoBehaviour
 
         SaveLevelData();
         
+        if (DataManager.Instance != null)
+        {
+            DataManager.Instance.SetQuestProgress("Quest_Reach_Level_10", CurrentLevel);
+        }
+        
         // Kiểm tra xem Exp dư thừa có đủ để lên cấp tiếp không (hiếm khi xảy ra nhưng an toàn)
         int expNeeded = GetExpToNextLevel();
         if (CurrentExp >= expNeeded)
