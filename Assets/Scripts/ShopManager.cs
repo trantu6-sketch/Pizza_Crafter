@@ -98,7 +98,32 @@ public class ShopManager : MonoBehaviour
         if (rightButton != null) rightButton.onClick.AddListener(NextItem);
         if (buyButton != null) buyButton.onClick.AddListener(OnBuyOrEquipClicked);
 
-        UpdateGoldUI();
+        UpdateGoldUI(DataManager.Instance != null ? DataManager.Instance.playerData.Gold : 0);
+    }
+
+    void OnEnable()
+    {
+        if (GameEventManager.Instance != null)
+        {
+            GameEventManager.Instance.OnGoldChanged += OnGoldChanged;
+        }
+    }
+
+    void OnDisable()
+    {
+        if (GameEventManager.Instance != null)
+        {
+            GameEventManager.Instance.OnGoldChanged -= OnGoldChanged;
+        }
+    }
+
+    private void OnGoldChanged(int newGold)
+    {
+        UpdateGoldUI(newGold);
+        if (shopPanel != null && shopPanel.activeInHierarchy)
+        {
+            UpdateDisplay(); // Cập nhật lại trạng thái mờ/sáng của nút Mua
+        }
     }
 
     private void LoadDatabase()
@@ -128,7 +153,7 @@ public class ShopManager : MonoBehaviour
         
         // Luôn hiển thị tab Skins khi mở shop
         OpenSkinTab();
-        UpdateGoldUI();
+        UpdateGoldUI(DataManager.Instance != null ? DataManager.Instance.playerData.Gold : 0);
     }
 
     public void CloseShop()
@@ -144,11 +169,11 @@ public class ShopManager : MonoBehaviour
         }
     }
 
-    public void UpdateGoldUI()
+    public void UpdateGoldUI(int currentGold)
     {
-        if (goldText != null && DataManager.Instance != null)
+        if (goldText != null)
         {
-            goldText.text = DataManager.Instance.playerData.Gold.ToString();
+            goldText.text = currentGold.ToString();
         }
     }
 
@@ -382,9 +407,7 @@ public class ShopManager : MonoBehaviour
 
             if (isOwned)
             {
-                DataManager.Instance.playerData.EquippedPlateSkin = currentSkin.id;
-                DataManager.Instance.SaveData();
-                Debug.Log($"[ShopManager] Đã trang bị skin: {currentSkin.name}");
+                DataManager.Instance.EquipSkin(currentSkin.id);
                 UpdateAllPlatesInScene();
             }
             else
@@ -392,8 +415,7 @@ public class ShopManager : MonoBehaviour
                 bool success = DataManager.Instance.BuySkin(currentSkin.id, currentSkin.price);
                 if (success)
                 {
-                    DataManager.Instance.playerData.EquippedPlateSkin = currentSkin.id;
-                    DataManager.Instance.SaveData();
+                    DataManager.Instance.EquipSkin(currentSkin.id);
                     UpdateAllPlatesInScene();
                 }
             }
@@ -424,7 +446,6 @@ public class ShopManager : MonoBehaviour
             }
         }
 
-        UpdateGoldUI();
         UpdateDisplay();
     }
 

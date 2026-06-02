@@ -1707,6 +1707,7 @@ GameObject:
   m_Component:
   - component: {fileID: 295107440}
   - component: {fileID: 295107441}
+  - component: {fileID: 295107442}
   m_Layer: 0
   m_Name: TimeManager
   m_TagString: Untagged
@@ -1741,6 +1742,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 74cb9aef0b0e6554f9098a61926c4e8a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkTimeManager
+--- !u!114 &295107442
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 295107439}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4098bed913bf7d744b50ca485f27c570, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameEventManager
 --- !u!1 &316706349
 GameObject:
   m_ObjectHideFlags: 0
@@ -2650,7 +2663,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &486769374
 RectTransform:
   m_ObjectHideFlags: 0

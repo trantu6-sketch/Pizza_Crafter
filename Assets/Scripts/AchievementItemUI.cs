@@ -19,10 +19,39 @@ public class AchievementItemUI : MonoBehaviour
     public TextMeshProUGUI rewardStatusText;
 
     private string questId;
+    private AchievementConfig cachedConfig;
+    private QuestData cachedQuest;
+
+    void OnEnable()
+    {
+        if (GameEventManager.Instance != null)
+        {
+            GameEventManager.Instance.OnQuestProgressUpdated += OnQuestProgressUpdated;
+        }
+    }
+
+    void OnDisable()
+    {
+        if (GameEventManager.Instance != null)
+        {
+            GameEventManager.Instance.OnQuestProgressUpdated -= OnQuestProgressUpdated;
+        }
+    }
+
+    private void OnQuestProgressUpdated(string updatedQuestId, int current, int target, bool isCompleted)
+    {
+        if (updatedQuestId == questId && cachedQuest != null && cachedConfig != null)
+        {
+            // Update the UI
+            Setup(cachedQuest, cachedConfig);
+        }
+    }
 
     public void Setup(QuestData quest, AchievementConfig config)
     {
         questId = quest.questId;
+        cachedQuest = quest;
+        cachedConfig = config;
         
         // 1. Gán tiêu đề
         if (titleText != null) 

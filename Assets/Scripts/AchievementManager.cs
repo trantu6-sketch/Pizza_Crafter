@@ -178,12 +178,6 @@ public class AchievementManager : MonoBehaviour
 
             DataManager.Instance.SaveData();
             Debug.Log($"[Achievement] Đã nhận phần thưởng {config.rewardAmount} {config.rewardType} từ nhiệm vụ {config.title}");
-            
-            // Cập nhật lại thanh tiền nếu đang bật UI
-            if (ShopManager.Instance != null)
-            {
-                ShopManager.Instance.UpdateGoldUI();
-            }
         }
     }
 }

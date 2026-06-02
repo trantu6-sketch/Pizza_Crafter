@@ -58,7 +58,9 @@ public class NetworkTimeManager : MonoBehaviour
                     TimeApiResponse response = JsonUtility.FromJson<TimeApiResponse>(jsonResult);
                     
                     // Parse chuỗi sang DateTime (UTC)
-                    DateTime utcNow = DateTime.Parse(response.dateTime).ToUniversalTime();
+                    // API timeapi.io trả về chuỗi "2026-06-02T14:26:00" không có chữ Z ở đuôi
+                    // Nên ta phải tự thêm "Z" vào để Unity hiểu đây là giờ Quốc Tế, tránh bị trừ lùi 7 tiếng
+                    DateTime utcNow = DateTime.Parse(response.dateTime + "Z");
                     
                     Debug.Log("[NetworkTimeManager] Lấy giờ chuẩn thành công: " + utcNow.ToString());
                     onSuccess?.Invoke(utcNow);

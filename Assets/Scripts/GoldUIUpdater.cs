@@ -5,23 +5,42 @@ using TMPro;
 public class GoldUIUpdater : MonoBehaviour
 {
     private TextMeshProUGUI textComponent;
-    private int lastGold = -1;
 
     void Awake()
     {
         textComponent = GetComponent<TextMeshProUGUI>();
     }
 
-    void Update()
+    void Start()
     {
+        // Khởi tạo text lần đầu
         if (DataManager.Instance != null)
         {
-            int currentGold = DataManager.Instance.playerData.Gold;
-            if (currentGold != lastGold)
-            {
-                lastGold = currentGold;
-                textComponent.text = lastGold.ToString();
-            }
+            UpdateGoldText(DataManager.Instance.playerData.Gold);
+        }
+    }
+
+    void OnEnable()
+    {
+        if (GameEventManager.Instance != null)
+        {
+            GameEventManager.Instance.OnGoldChanged += UpdateGoldText;
+        }
+    }
+
+    void OnDisable()
+    {
+        if (GameEventManager.Instance != null)
+        {
+            GameEventManager.Instance.OnGoldChanged -= UpdateGoldText;
+        }
+    }
+
+    private void UpdateGoldText(int newGold)
+    {
+        if (textComponent != null)
+        {
+            textComponent.text = newGold.ToString();
         }
     }
 }

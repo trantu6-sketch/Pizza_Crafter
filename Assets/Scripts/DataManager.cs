@@ -95,6 +95,8 @@ public class DataManager : MonoBehaviour
         playerData.Gold += amount;
         UpdateQuestProgress("Quest_Collect_2000_Gold", amount);
         SaveData();
+        
+        GameEventManager.Instance?.TriggerGoldChanged(playerData.Gold);
     }
 
     public bool BuySkin(string skinId, int price)
@@ -111,6 +113,10 @@ public class DataManager : MonoBehaviour
             playerData.PurchasedSkins.Add(skinId);
             UpdateQuestProgress("Quest_Unlock_5_Skins", 1);
             SaveData();
+            
+            GameEventManager.Instance?.TriggerGoldChanged(playerData.Gold);
+            GameEventManager.Instance?.TriggerSkinPurchased(skinId);
+            
             Debug.Log($"[DataManager] Mua thành công {skinId}. Còn lại {playerData.Gold} Vàng.");
             return true;
         }
@@ -118,6 +124,17 @@ public class DataManager : MonoBehaviour
         {
             Debug.Log("[DataManager] Không đủ Vàng để mua skin!");
             return false;
+        }
+    }
+
+    public void EquipSkin(string skinId)
+    {
+        if (playerData.PurchasedSkins.Contains(skinId) || skinId == "Plate_Default")
+        {
+            playerData.EquippedPlateSkin = skinId;
+            SaveData();
+            GameEventManager.Instance?.TriggerSkinEquipped(skinId);
+            Debug.Log($"[DataManager] Đã trang bị skin: {skinId}");
         }
     }
 
@@ -134,6 +151,8 @@ public class DataManager : MonoBehaviour
                 Debug.Log($"[DataManager] HOÀN THÀNH NHIỆM VỤ: {questId}!");
             }
             SaveData();
+            
+            GameEventManager.Instance?.TriggerQuestProgressUpdated(quest.questId, quest.currentProgress, quest.targetProgress, quest.isCompleted);
         }
     }
 
@@ -150,6 +169,8 @@ public class DataManager : MonoBehaviour
                 Debug.Log($"[DataManager] HOÀN THÀNH NHIỆM VỤ: {questId}!");
             }
             SaveData();
+            
+            GameEventManager.Instance?.TriggerQuestProgressUpdated(quest.questId, quest.currentProgress, quest.targetProgress, quest.isCompleted);
         }
     }
 }
