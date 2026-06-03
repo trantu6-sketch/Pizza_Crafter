@@ -13,6 +13,13 @@ public class DragDropManager : MonoBehaviour
     // Lưu ô cờ đang được hover để làm hiệu ứng nổi
     private GridCell hoveredCell;
 
+    // --- Tối ưu hóa GC Alloc (Tái sử dụng các Collection) ---
+    private Queue<GridCell> activeQueue = new Queue<GridCell>();
+    private HashSet<PizzaColor> colorsOnPlate = new HashSet<PizzaColor>();
+    private List<GridCell> validNeighbors = new List<GridCell>();
+    private List<GridCell> group = new List<GridCell>();
+    private List<GridCell> neighborBuffer = new List<GridCell>();
+
     void Update()
     {
         // Chặn người chơi không cho kéo thả nếu FSM KHÔNG phải là PlayingState
@@ -23,6 +30,13 @@ public class DragDropManager : MonoBehaviour
 
         if (Input.GetMouseButtonDown(0))
         {
+            // Bỏ qua nếu đang click lên UI (Ví dụ: Các nút trong Shop)
+            if (UnityEngine.EventSystems.EventSystem.current != null && 
+                UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
+            {
+                return;
+            }
+
             HandleMouseDown();
         }
         else if (Input.GetMouseButton(0) && draggingPlate != null)
@@ -187,7 +201,7 @@ public class DragDropManager : MonoBehaviour
     {
         if (placedCell.currentPlate == null || placedCell.currentPlate.IsEmpty()) return;
 
-        Queue<GridCell> activeQueue = new Queue<GridCell>();
+        activeQueue.Clear();
         activeQueue.Enqueue(placedCell);
 
         int maxIterations = 100; // Tránh lặp vô tận do lỗi logic
@@ -202,7 +216,7 @@ public class DragDropManager : MonoBehaviour
             if (currentPlate == null || currentPlate.IsEmpty()) continue;
 
             // Lấy các màu hiện có trên đĩa này
-            HashSet<PizzaColor> colorsOnPlate = new HashSet<PizzaColor>();
+            colorsOnPlate.Clear();
             foreach (var slice in currentPlate.slices)
             {
                 colorsOnPlate.Add(slice.color);
@@ -216,10 +230,10 @@ public class DragDropManager : MonoBehaviour
                 if (currentCount == 0 || currentCount >= currentPlate.maxSlices) continue;
 
                 // Tìm các lân cận CÓ MÀU NÀY
-                List<GridCell> neighbors = GridManager.Instance.GetAllNeighbors(currentCell.row, currentCell.column);
-                List<GridCell> validNeighbors = new List<GridCell>();
+                GridManager.Instance.GetAllNeighbors(currentCell.row, currentCell.column, neighborBuffer);
+                validNeighbors.Clear();
                 
-                foreach (var neighbor in neighbors)
+                foreach (var neighbor in neighborBuffer)
                 {
                     if (neighbor.currentPlate != null)
                     {
@@ -234,20 +248,32 @@ public class DragDropManager : MonoBehaviour
                 if (validNeighbors.Count == 0) continue;
 
                 // TÌM ĐĨA ĐÍCH (Target) theo nguyên tắc chống Ping-Pong và chống Kẹt
-                List<GridCell> group = new List<GridCell>();
+                group.Clear();
                 group.Add(currentCell);
                 group.AddRange(validNeighbors);
 
                 // Sort giảm dần theo số lượng lát màu này. Ưu tiên currentCell nếu bằng nhau.
-                group.Sort((a, b) => 
+                // Sử dụng Bubble Sort cho List cực nhỏ (Max 5 phần tử) để TRÁNH GC Alloc của Lambda.
+                for (int i = 0; i < group.Count - 1; i++)
                 {
-                    int cA = CountSlicesOfColor(a.currentPlate, color);
-                    int cB = CountSlicesOfColor(b.currentPlate, color);
-                    if (cA != cB) return cB.CompareTo(cA);
-                    if (a == currentCell) return -1;
-                    if (b == currentCell) return 1;
-                    return 0;
-                });
+                    for (int j = i + 1; j < group.Count; j++)
+                    {
+                        GridCell a = group[i];
+                        GridCell b = group[j];
+                        int cA = CountSlicesOfColor(a.currentPlate, color);
+                        int cB = CountSlicesOfColor(b.currentPlate, color);
+                        
+                        bool swap = false;
+                        if (cA < cB) swap = true;
+                        else if (cA == cB && b == currentCell) swap = true;
+
+                        if (swap)
+                        {
+                            group[i] = b;
+                            group[j] = a;
+                        }
+                    }
+                }
 
                 GridCell targetMergeCell = null;
                 foreach (var potentialTarget in group)

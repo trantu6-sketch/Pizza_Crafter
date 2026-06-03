@@ -260,7 +260,7 @@ public class PizzaPlate : MonoBehaviour
 
             if (allSame)
             {
-                Debug.Log($"[Logic Core] BÙM! Đĩa ở {currentCell.row}, {currentCell.column} đã đủ 6 lát màu {firstColor}. CỘNG 1 ĐIỂM!");
+                // Debug.Log($"[Logic Core] BÙM! Đĩa ở {currentCell.row}, {currentCell.column} đã đủ 6 lát màu {firstColor}. CỘNG 1 ĐIỂM!"); // Tắt Log để tránh GC Alloc
                 
                 // [QUAN TRỌNG] Phải giải phóng ô lưới NGAY LẬP TỨC để hệ thống (IsGridFull) biết là ô này đã trống!
                 // Nếu không, 0.4s sau đĩa mới bị Destroy, hàm CheckGameOver chạy luôn lúc này sẽ lầm tưởng Grid đã Full và chuyển sang Game Over ngầm gây đơ game.
@@ -319,7 +319,7 @@ public class PizzaPlate : MonoBehaviour
                         {
                             var tmpro = textObj.GetComponentInChildren<TMPro.TextMeshPro>();
                             if (tmpro != null) {
-                                tmpro.text = $"+{finalScore}";
+                                tmpro.SetText("+{0}", finalScore); // Dùng SetText để tránh GC Alloc thay vì string interpolation
                                 tmpro.color = Color.yellow;
                             }
                         }
@@ -333,7 +333,7 @@ public class PizzaPlate : MonoBehaviour
                                 {
                                     var tmproExp = expObj.GetComponentInChildren<TMPro.TextMeshPro>();
                                     if (tmproExp != null) {
-                                        tmproExp.text = $"+{Random.Range(8, 11)} XP";
+                                        tmproExp.SetText("+{0} XP", Random.Range(8, 11)); // Dùng SetText để tránh GC Alloc
                                         tmproExp.color = new Color(0.2f, 0.6f, 1f);
                                     }
                                 }

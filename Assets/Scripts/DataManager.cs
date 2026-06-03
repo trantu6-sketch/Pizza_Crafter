@@ -129,7 +129,14 @@ public class DataManager : MonoBehaviour
 
     public void EquipSkin(string skinId)
     {
-        if (playerData.PurchasedSkins.Contains(skinId) || skinId == "Plate_Default")
+        bool isFree = (skinId == "Plate_Default" || skinId == "SinglePlate2");
+        if (ShopManager.Instance != null)
+        {
+            SkinData skin = ShopManager.Instance.GetSkinData(skinId);
+            if (skin != null && skin.price == 0) isFree = true;
+        }
+
+        if (playerData.PurchasedSkins.Contains(skinId) || isFree)
         {
             playerData.EquippedPlateSkin = skinId;
             SaveData();

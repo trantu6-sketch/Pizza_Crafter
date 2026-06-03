@@ -138,9 +138,9 @@ public class GridManager : MonoBehaviour
     /// Thuật toán kiểm tra lân cận 4 hướng (Trên, Dưới, Trái, Phải)
     /// Trả về danh sách tất cả các GridCell có chứa đĩa Pizza.
     /// </summary>
-    public List<GridCell> GetAllNeighbors(int row, int col)
+    public void GetAllNeighbors(int row, int col, List<GridCell> results)
     {
-        List<GridCell> neighbors = new List<GridCell>();
+        results.Clear();
 
         int[] dRow = { -1, 1, 0, 0 };
         int[] dCol = { 0, 0, -1, 1 };
@@ -155,12 +155,10 @@ public class GridManager : MonoBehaviour
                 GridCell neighborCell = gridMap[checkRow, checkCol];
                 if (!neighborCell.IsEmpty)
                 {
-                    neighbors.Add(neighborCell);
+                    results.Add(neighborCell);
                 }
             }
         }
-
-        return neighbors;
     }
 
     /// <summary>
