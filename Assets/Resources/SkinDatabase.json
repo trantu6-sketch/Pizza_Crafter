@@ -10,30 +10,44 @@
     {
       "id": "SinglePlate3",
       "name": "Khay Nâu Cổ Điển",
-      "price": 250,
+      "price": 500,
       "prefabPath": "PlateSkins/SinglePlate3",
       "iconPath": "Icons/Plate3"
     },
     {
       "id": "SinglePlate4",
       "name": "Đĩa Sắt Bạc",
-      "price": 200,
+      "price": 300,
       "prefabPath": "PlateSkins/SinglePlate4",
       "iconPath": "Icons/Plate4"
     },
     {
       "id": "SinglePlate5",
       "name": "Đĩa Vàng Hoàng Gia",
-      "price": 300,
+      "price": 2500,
       "prefabPath": "PlateSkins/SinglePlate5",
       "iconPath": "Icons/Plate5"
     },
     {
       "id": "SinglePlate6",
       "name": "Đĩa Gốm Sứ Cánh Sen",
-      "price": 350,
+      "price": 2000,
       "prefabPath": "PlateSkins/SinglePlate6",
       "iconPath": "Icons/Plate6"
+    },
+    {
+      "id": "SinglePlate7",
+      "name": "Đĩa Caro Dịu Nhẹ",
+      "price": 1600,
+      "prefabPath": "PlateSkins/SinglePlate7",
+      "iconPath": "Icons/Plate7"
+    },
+    {
+      "id": "SinglePlate8",
+      "name": "Đĩa Kẻ Sọc Qúy Tộc",
+      "price": 2000,
+      "prefabPath": "PlateSkins/SinglePlate8",
+      "iconPath": "Icons/Plate8"
     }
   ]
 }

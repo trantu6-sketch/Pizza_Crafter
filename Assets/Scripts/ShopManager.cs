@@ -48,7 +48,6 @@ public class ShopManager : MonoBehaviour
     [Header("Shop Tabs Content")]
     [Tooltip("Gom tất cả UI của vòng quay Skin/Booster (Ảnh, Giá, Nút Mua, Chấm) vào 1 Panel và kéo vào đây")]
     public GameObject carouselTabContent;
-    public GameObject achievementTabContent;
 
     [Header("Carousel Display")]
     public TextMeshProUGUI itemNameText;
@@ -182,7 +181,6 @@ public class ShopManager : MonoBehaviour
     public void OpenSkinTab()
     {
         if (carouselTabContent != null) carouselTabContent.SetActive(true);
-        if (achievementTabContent != null) achievementTabContent.SetActive(false);
         
         currentTab = ShopTab.Skins;
         currentIndex = 0;
@@ -193,7 +191,6 @@ public class ShopManager : MonoBehaviour
     public void OpenBoosterTab()
     {
         if (carouselTabContent != null) carouselTabContent.SetActive(true);
-        if (achievementTabContent != null) achievementTabContent.SetActive(false);
         
         currentTab = ShopTab.Boosters;
         currentIndex = 0;
@@ -209,17 +206,6 @@ public class ShopManager : MonoBehaviour
         
         GenerateDots();
         UpdateDisplay();
-    }
-
-    public void OpenAchievementTab()
-    {
-        if (carouselTabContent != null) carouselTabContent.SetActive(false);
-        if (achievementTabContent != null) achievementTabContent.SetActive(true);
-        
-        if (AchievementManager.Instance != null)
-        {
-            AchievementManager.Instance.RenderAchievements();
-        }
     }
 
     // ================== LOGIC CAROUSEL ==================

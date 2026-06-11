@@ -46,12 +46,25 @@ public class LevelManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Số điểm được cộng khi ăn Pizza, tăng dần theo Level.
-    /// Cứ mỗi 5 Level sẽ được +1 điểm thưởng.
+    /// Số điểm được cộng khi ăn Pizza, tăng đồng bộ với độ khó.
+    /// Dễ (1-3): Mặc định
+    /// Trung bình (4-7): Thưởng +1
+    /// Khó (8+): Thưởng +2 (và vẫn tiếp tục tăng nhẹ về sau để khích lệ)
     /// </summary>
     public int GetScoreMultiplier()
     {
-        int bonus = CurrentLevel / 5;
+        int bonus = 0;
+        
+        if (CurrentLevel >= 4 && CurrentLevel <= 7)
+        {
+            bonus = 1; // Độ khó trung bình thưởng +1 Vàng
+        }
+        else if (CurrentLevel >= 8)
+        {
+            // Độ khó cao thưởng +2 Vàng, và cứ mỗi 5 level tiếp theo lại cộng thêm 1 Vàng nữa để không bị chán
+            bonus = 2 + (CurrentLevel - 8) / 5; 
+        }
+
         return baseScorePerPlate + bonus;
     }
 

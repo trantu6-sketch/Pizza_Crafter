@@ -27,8 +27,10 @@ public class AchievementManager : MonoBehaviour
     public static AchievementManager Instance { get; private set; }
 
     [Header("UI References")]
+    public GameObject panelContainer; // Khung Popup bọc ngoài cùng của Achievement
     public GameObject achievementItemPrefab;
     public Transform scrollViewContent;
+    public float popupDuration = 0.4f;
 
     [Header("Database")]
     public List<AchievementConfig> database = new List<AchievementConfig>();
@@ -75,7 +77,25 @@ public class AchievementManager : MonoBehaviour
             }
             else
             {
-                // Cập nhật lại target lỡ như có thay đổi ở Database
+                // Đồng bộ config (UI) với level hiện tại của QuestData (đảm bảo không mất dữ liệu nâng cấp khi restart game)
+                if (existingQuest.level <= 0) existingQuest.level = 1;
+                
+                // Khôi phục lại chỉ số của config theo cấp độ hiện tại
+                // Lấy bản chuẩn trước (vì config hiện tại đang chứa Base Value)
+                int baseTarget = config.targetProgress;
+                int baseReward = config.rewardAmount;
+                
+                for (int i = 1; i < existingQuest.level; i++)
+                {
+                    baseTarget = (int)(baseTarget * 1.5f);
+                    if (config.rewardType == RewardType.Gold) baseReward += 200;
+                    else baseReward += 1;
+                }
+                
+                config.targetProgress = baseTarget;
+                config.rewardAmount = baseReward;
+
+                // Cập nhật lại target lỡ như có thay đổi
                 if (existingQuest.targetProgress != config.targetProgress)
                 {
                     existingQuest.targetProgress = config.targetProgress;
@@ -91,8 +111,30 @@ public class AchievementManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Gọi hàm này khi mở Tab Achievement để sinh ra danh sách UI
+    /// Gọi hàm này khi mở Tab/Popup Achievement để sinh ra danh sách UI
     /// </summary>
+    public void OpenPanel()
+    {
+        if (panelContainer != null)
+        {
+            panelContainer.SetActive(true);
+            panelContainer.transform.localScale = Vector3.zero;
+            panelContainer.transform.DOScale(Vector3.one, popupDuration).SetEase(Ease.OutBack);
+        }
+        
+        RenderAchievements();
+    }
+
+    public void ClosePanel()
+    {
+        if (panelContainer != null)
+        {
+            panelContainer.transform.DOScale(Vector3.zero, 0.3f).SetEase(Ease.InBack).OnComplete(() => {
+                panelContainer.SetActive(false);
+            });
+        }
+    }
+
     public void RenderAchievements()
     {
         if (DataManager.Instance == null || achievementItemPrefab == null || scrollViewContent == null) return;
@@ -154,9 +196,7 @@ public class AchievementManager : MonoBehaviour
 
         if (quest != null && config != null && quest.isCompleted && !quest.isClaimed)
         {
-            quest.isClaimed = true;
-
-            // Trao thưởng
+            // 1. Trao thưởng cho người chơi
             switch (config.rewardType)
             {
                 case RewardType.Gold:
@@ -176,8 +216,23 @@ public class AchievementManager : MonoBehaviour
                     break;
             }
 
+            Debug.Log($"[Achievement] Đã nhận phần thưởng {config.rewardAmount} {config.rewardType} từ nhiệm vụ {config.title} (Level {quest.level})");
+
+            // 2. Nâng cấp nhiệm vụ lên cấp độ khó hơn (Endless Loop)
+            quest.level++;
+            config.targetProgress = (int)(config.targetProgress * 1.5f);
+            if (config.rewardType == RewardType.Gold) config.rewardAmount += 200;
+            else config.rewardAmount += 1;
+
+            // 3. Reset tiến trình về 0 để làm lại
+            quest.targetProgress = config.targetProgress;
+            quest.currentProgress = 0;
+            quest.isCompleted = false;
+            quest.isClaimed = false; // Luôn false để có thể tiếp tục claim ở level mới
+
+            // 4. Lưu và vẽ lại UI ngay lập tức
             DataManager.Instance.SaveData();
-            Debug.Log($"[Achievement] Đã nhận phần thưởng {config.rewardAmount} {config.rewardType} từ nhiệm vụ {config.title}");
+            RenderAchievements();
         }
     }
 }

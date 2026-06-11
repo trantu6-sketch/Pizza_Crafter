@@ -8,6 +8,7 @@ public class QuestData
     public int targetProgress;
     public bool isCompleted;
     public bool isClaimed;
+    public int level;
 
     public QuestData(string id, int target)
     {
@@ -16,6 +17,7 @@ public class QuestData
         this.targetProgress = target;
         this.isCompleted = false;
         this.isClaimed = false;
+        this.level = 1;
     }
 }
 

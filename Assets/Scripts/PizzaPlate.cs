@@ -407,18 +407,18 @@ public class PizzaPlate : MonoBehaviour
             int currentLevel = 1;
             if (LevelManager.Instance != null) currentLevel = LevelManager.Instance.CurrentLevel;
 
-            // Xác suất mặc định (Level 1-5): Dễ
+            // Xác suất mặc định (Level 1-3): Dễ
             float chance1Color = 0.70f;
             float chance2Color = 0.30f;
             
             // Level trung bình
-            if (currentLevel >= 6 && currentLevel <= 15)
+            if (currentLevel >= 4 && currentLevel <= 7)
             {
                 chance1Color = 0.45f; // Giảm từ 70% -> 45% như bạn yêu cầu
                 chance2Color = 0.40f;
             }
             // Level khó
-            else if (currentLevel > 15)
+            else if (currentLevel > 7)
             {
                 chance1Color = 0.30f;
                 chance2Color = 0.40f;

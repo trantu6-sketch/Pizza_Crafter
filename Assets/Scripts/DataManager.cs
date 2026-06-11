@@ -30,12 +30,31 @@ public class DataManager : MonoBehaviour
     public void SaveData()
     {
         string json = JsonUtility.ToJson(playerData, true); // true để format JSON dễ nhìn
+#if UNITY_WEBGL && !UNITY_EDITOR
+        PlayerPrefs.SetString("PlayerData", json);
+        PlayerPrefs.Save();
+        Debug.Log("[DataManager] Đã lưu dữ liệu người chơi thành công vào PlayerPrefs (WebGL).");
+#else
         File.WriteAllText(saveFilePath, json);
         Debug.Log("[DataManager] Đã lưu dữ liệu người chơi thành công tại: " + saveFilePath);
+#endif
     }
 
     public void LoadData()
     {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        if (PlayerPrefs.HasKey("PlayerData"))
+        {
+            string json = PlayerPrefs.GetString("PlayerData");
+            playerData = JsonUtility.FromJson<PlayerData>(json);
+            Debug.Log("[DataManager] Đã tải dữ liệu người chơi thành công từ PlayerPrefs (WebGL).");
+        }
+        else
+        {
+            playerData = new PlayerData();
+            SaveData();
+        }
+#else
         if (File.Exists(saveFilePath))
         {
             string json = File.ReadAllText(saveFilePath);
@@ -48,6 +67,7 @@ public class DataManager : MonoBehaviour
             playerData = new PlayerData();
             SaveData();
         }
+#endif
         
         CheckLoginStreak();
     }
