@@ -26,6 +26,9 @@ public class PizzaPlate : MonoBehaviour
     [HideInInspector]
     public Vector3 originalPosition;
 
+    // Cờ đánh dấu đĩa đang trong quá trình nổ để tránh nổ đúp (lỗi x2 exp/vàng)
+    private bool isExploding = false;
+
     void Start()
     {
         slotArray = new PizzaSlice[maxSlices];
@@ -244,6 +247,8 @@ public class PizzaPlate : MonoBehaviour
 
     private void CheckBloom()
     {
+        if (isExploding) return;
+
         if (IsFull())
         {
             // Kiểm tra xem tất cả 6 miếng có cùng 1 màu không
@@ -260,7 +265,7 @@ public class PizzaPlate : MonoBehaviour
 
             if (allSame)
             {
-                // Debug.Log($"[Logic Core] BÙM! Đĩa ở {currentCell.row}, {currentCell.column} đã đủ 6 lát màu {firstColor}. CỘNG 1 ĐIỂM!"); // Tắt Log để tránh GC Alloc
+                isExploding = true;
                 
                 // [QUAN TRỌNG] Phải giải phóng ô lưới NGAY LẬP TỨC để hệ thống (IsGridFull) biết là ô này đã trống!
                 // Nếu không, 0.4s sau đĩa mới bị Destroy, hàm CheckGameOver chạy luôn lúc này sẽ lầm tưởng Grid đã Full và chuyển sang Game Over ngầm gây đơ game.
@@ -271,11 +276,11 @@ public class PizzaPlate : MonoBehaviour
                 
                 // Cộng điểm trên UI và cộng Exp
                 int finalScore = 1;
+                int expEarned = Random.Range(8, 11);
+                
                 if (LevelManager.Instance != null)
                 {
                     finalScore = LevelManager.Instance.GetScoreMultiplier();
-                    
-                    int expEarned = Random.Range(8, 11);
                     LevelManager.Instance.AddExp(expEarned);
                 }
 
@@ -297,51 +302,50 @@ public class PizzaPlate : MonoBehaviour
                     AudioManager.Instance.PlayExplosionSound();
                 }
 
-                // Hủy các lát cắt ngay lập tức
-                foreach (var slice in slices)
+                // Sinh hiệu ứng Particle nổ từ Pool NGAY LẬP TỨC
+                if (ObjectPooler.Instance != null)
                 {
-                    Destroy(slice.gameObject);
-                }
-                slices.Clear();
-
-                // Tạo hiệu ứng thu nhỏ cho chính cái đĩa, SAU ĐÓ mới nổ Particle và hiện Text
-                transform.DOScale(Vector3.zero, 0.4f).SetEase(Ease.InBack).OnComplete(() => {
+                    // Nâng toạ độ nổ lên một chút (Y + 1.0f) để Effect không bị cắm xuống mặt bàn gây ra hiện tượng mất 1 nửa
+                    Vector3 explosionPos = transform.position + new Vector3(0, 1.0f, 0);
+                    ObjectPooler.Instance.SpawnFromPool("ExplosionVFX", explosionPos, Quaternion.identity);
                     
-                    // Sinh hiệu ứng Particle nổ từ Pool
-                    if (ObjectPooler.Instance != null)
+                    // Sinh Text Điểm (Vàng) lệch trái
+                    Vector3 pointPos = transform.position + new Vector3(-0.5f, 1.5f, 0);
+                    GameObject textObj = ObjectPooler.Instance.SpawnFromPool("FloatingText", pointPos);
+                    if (textObj != null)
                     {
-                        ObjectPooler.Instance.SpawnFromPool("ExplosionVFX", transform.position, Quaternion.identity);
-                        
-                        // Sinh Text Điểm (Vàng) lệch trái
-                        Vector3 pointPos = transform.position + new Vector3(-0.5f, 1.5f, 0);
-                        GameObject textObj = ObjectPooler.Instance.SpawnFromPool("FloatingText", pointPos);
-                        if (textObj != null)
+                        var tmpro = textObj.GetComponentInChildren<TMPro.TextMeshPro>();
+                        if (tmpro != null) {
+                            tmpro.SetText("+{0}", finalScore); 
+                            tmpro.color = Color.yellow;
+                        }
+                    }
+
+                    // Sinh Text Exp (Xanh dương) lệch phải
+                    if (LevelManager.Instance != null)
+                    {
+                        Vector3 expPos = transform.position + new Vector3(0.5f, 1.5f, 0);
+                        GameObject expObj = ObjectPooler.Instance.SpawnFromPool("FloatingText", expPos);
+                        if (expObj != null)
                         {
-                            var tmpro = textObj.GetComponentInChildren<TMPro.TextMeshPro>();
-                            if (tmpro != null) {
-                                tmpro.SetText("+{0}", finalScore); // Dùng SetText để tránh GC Alloc thay vì string interpolation
-                                tmpro.color = Color.yellow;
+                            var tmproExp = expObj.GetComponentInChildren<TMPro.TextMeshPro>();
+                            if (tmproExp != null) {
+                                tmproExp.SetText("+{0} XP", expEarned); // Đồng bộ chuẩn số điểm kinh nghiệm đã nhận
+                                tmproExp.color = new Color(0.2f, 0.6f, 1f);
                             }
                         }
+                    }
+                }
 
-                            // Sinh Text Exp (Xanh dương) lệch phải
-                            if (LevelManager.Instance != null)
-                            {
-                                Vector3 expPos = transform.position + new Vector3(0.5f, 1.5f, 0);
-                                GameObject expObj = ObjectPooler.Instance.SpawnFromPool("FloatingText", expPos);
-                                if (expObj != null)
-                                {
-                                    var tmproExp = expObj.GetComponentInChildren<TMPro.TextMeshPro>();
-                                    if (tmproExp != null) {
-                                        tmproExp.SetText("+{0} XP", Random.Range(8, 11)); // Dùng SetText để tránh GC Alloc
-                                        tmproExp.color = new Color(0.2f, 0.6f, 1f);
-                                    }
-                                }
-                            }
-                        }
+                // Tắt tương tác vật lý để người chơi không lỡ tay bấm trúng đĩa đang nổ
+                Collider col = GetComponent<Collider>();
+                if (col != null) col.enabled = false;
 
-                        Destroy(gameObject);
-                    });
+                // GIẢI QUYẾT HIỆN TƯỢNG "DELAY THỊ GIÁC": 
+                // Kéo dài thời gian đĩa thu nhỏ lên 1 giây để nán lại trên màn hình lâu hơn theo ý bạn
+                transform.DOScale(Vector3.zero, 1.0f).SetEase(Ease.InBack).OnComplete(() => {
+                    Destroy(gameObject);
+                });
             }
             else
             {

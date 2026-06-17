@@ -41,6 +41,9 @@ public class GridCell : MonoBehaviour
         {
             plate.currentCell = this;
             
+            // Giải phóng đĩa khỏi khay Lobby (để nó không đi theo Lobby nữa)
+            plate.transform.SetParent(null);
+            
             // Tính toán độ cao (Y) để đĩa nằm trên mặt lưới thay vì bị lún xuống giữa
             float yOffset = 0f;
             Collider col = GetComponent<Collider>();

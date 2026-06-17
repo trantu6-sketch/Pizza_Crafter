@@ -14,8 +14,12 @@ public class HoldSlot : MonoBehaviour
     {
         currentPlate = plate;
         plate.currentHoldSlot = this;
+        
+        // Gắn làm con của khay để đĩa tự động trôi theo khay nếu khay bị kéo xuống đáy màn hình
+        plate.transform.SetParent(this.transform);
+        
         // Đặt vị trí đĩa trùng với tâm khay chứa
-        plate.transform.position = transform.position;
+        plate.transform.localPosition = Vector3.zero;
         // Lưu lại vị trí ban đầu để DragDropManager biết đường trả về nếu kéo lỗi
         plate.originalPosition = transform.position;
     }
